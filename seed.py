@@ -100,7 +100,7 @@ def seed_db():
         {"cat_id": 5, "prefix": "FURN", "names": ["Steelcase Gesture Chair", "Task Chair Basic", "Whiteboard Mobile", "Executive Desk Oak"]}
     ]
     
-    for i in range(13, 60):
+    for i in range(13, 90):
         cat_info = categories_list[(i % len(categories_list))]
         cat_id = cat_info["cat_id"]
         prefix = cat_info["prefix"]
@@ -112,6 +112,18 @@ def seed_db():
         location = f"Floor {((i % 4) + 1)} - Zone {chr(65 + (i % 3))}"
         is_shared = (cat_id in [3, 4])
         
+        # Calculate realistic cost
+        if cat_id == 1:
+            cost = 1200.00 + (i * 20) % 1500
+        elif cat_id == 2:
+            cost = 5000.00 + (i * 100) % 8000
+        elif cat_id == 3:
+            cost = 15000.00 + (i * 500) % 10000
+        elif cat_id == 4:
+            cost = 800.00 + (i * 50) % 3000
+        else:
+            cost = 150.00 + (i * 10) % 600
+
         attrs = {}
         if cat_id == 1:
             attrs = {"ram": "16GB", "storage": "512GB SSD"}
@@ -133,6 +145,7 @@ def seed_db():
             "status": status,
             "location": location,
             "is_shared": is_shared,
+            "cost": cost,
             "attributes": attrs
         })
         
@@ -147,11 +160,13 @@ def seed_db():
                 "status": ad["status"],
                 "location": ad["location"],
                 "is_shared": ad["is_shared"],
+                "cost": ad.get("cost"),
                 "attributes": ad["attributes"]
             }
         )
         if not created:
             asset.status = ad["status"]
+            asset.cost = ad.get("cost")
             asset.save()
         asset_map[ad["id"]] = asset
 

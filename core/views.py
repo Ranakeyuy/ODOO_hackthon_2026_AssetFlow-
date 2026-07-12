@@ -72,8 +72,10 @@ class AssetDirectoryView(LoginRequiredMixin, View):
     template_name = 'core/asset_directory.html'
 
     def get_queryset(self, request):
-        queryset = Asset.objects.select_related('category').order_by('tag')
+        queryset = Asset.objects.select_related('category').prefetch_related('allocations__user').order_by('tag')
         q = request.GET.get('q')
+        tag = request.GET.get('tag')
+        serial_number = request.GET.get('serial_number')
         status = request.GET.get('status')
         category = request.GET.get('category')
         location = request.GET.get('location')
@@ -82,6 +84,10 @@ class AssetDirectoryView(LoginRequiredMixin, View):
             queryset = queryset.filter(
                 Q(tag__icontains=q) | Q(name__icontains=q) | Q(serial_number__icontains=q)
             )
+        if tag:
+            queryset = queryset.filter(tag__icontains=tag)
+        if serial_number:
+            queryset = queryset.filter(serial_number__icontains=serial_number)
         if status:
             queryset = queryset.filter(status=status)
         if category:
@@ -109,6 +115,24 @@ class AssetDirectoryView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
+        if request.POST.get('action') == 'update_status':
+            if request.user.role not in [User.ADMIN, User.ASSET_MANAGER]:
+                return JsonResponse({'error': 'Permission denied'}, status=403)
+            asset_id = request.POST.get('asset_id')
+            new_status = request.POST.get('status')
+            if asset_id and new_status:
+                asset = get_object_or_404(Asset, pk=asset_id)
+                if new_status in dict(Asset.STATUS_CHOICES):
+                    asset.status = new_status
+                    asset.save()
+                    return JsonResponse({
+                        'success': True,
+                        'new_status': asset.get_status_display(),
+                        'status_code': asset.status
+                    })
+                return JsonResponse({'error': 'Invalid status'}, status=400)
+            return JsonResponse({'error': 'Missing fields'}, status=400)
+
         form = AssetRegistrationForm(request.POST)
         if form.is_valid():
             form.save()

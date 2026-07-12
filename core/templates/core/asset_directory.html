@@ -4,6 +4,8 @@
 {% block page_title %}Asset Directory{% endblock %}
 
 {% block extra_head %}
+<!-- Chart.js CDN for Category Distribution chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     .status-badge-AVAILABLE    { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
     .status-badge-ALLOCATED    { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
@@ -19,134 +21,197 @@
 
 {% block content %}
 
-<div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden mb-5">
-    <form method="get" id="filter-form">
-        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-0 divide-x divide-slate-700/60">
-            <div class="px-4 py-3">
-                <label class="block text-xs font-medium text-slate-400 mb-1.5">Asset Tag</label>
-                <input type="text" name="tag" value="{{ request.GET.tag }}" placeholder="AF-0001"
-                       class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors">
-            </div>
-            <div class="px-4 py-3">
-                <label class="block text-xs font-medium text-slate-400 mb-1.5">Serial Number</label>
-                <input type="text" name="serial_number" value="{{ request.GET.serial_number }}" placeholder="SN-XXXX"
-                       class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors">
-            </div>
-            <div class="px-4 py-3">
-                <label class="block text-xs font-medium text-slate-400 mb-1.5">Category</label>
-                <select name="category" class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
-                    <option value="">All Categories</option>
-                    {% for cat in categories %}
-                    <option value="{{ cat.pk }}" {% if request.GET.category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="px-4 py-3">
-                <label class="block text-xs font-medium text-slate-400 mb-1.5">Status</label>
-                <select name="status" class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
-                    <option value="">All Statuses</option>
-                    <option value="AVAILABLE"         {% if request.GET.status == "AVAILABLE" %}selected{% endif %}>Available</option>
-                    <option value="ALLOCATED"         {% if request.GET.status == "ALLOCATED" %}selected{% endif %}>Allocated</option>
-                    <option value="RESERVED"          {% if request.GET.status == "RESERVED" %}selected{% endif %}>Reserved</option>
-                    <option value="UNDER_MAINTENANCE" {% if request.GET.status == "UNDER_MAINTENANCE" %}selected{% endif %}>Under Maintenance</option>
-                    <option value="LOST"              {% if request.GET.status == "LOST" %}selected{% endif %}>Lost</option>
-                    <option value="RETIRED"           {% if request.GET.status == "RETIRED" %}selected{% endif %}>Retired</option>
-                    <option value="DISPOSED"          {% if request.GET.status == "DISPOSED" %}selected{% endif %}>Disposed</option>
-                </select>
-            </div>
-            <div class="px-4 py-3">
-                <label class="block text-xs font-medium text-slate-400 mb-1.5">Location</label>
-                <input type="text" name="location" value="{{ request.GET.location }}" placeholder="Floor, Room..."
-                       class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors">
-            </div>
-            <div class="px-4 py-3 flex items-end gap-2">
-                <button type="submit" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    Filter
-                </button>
-                <a href="{% url 'asset_directory' %}" class="flex items-center justify-center px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition-colors" title="Clear filters">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </a>
-            </div>
-        </div>
-    </form>
+<!-- Statistics Cards Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
+        <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Assets</p>
+        <p class="text-2xl font-black text-white" id="stat-total">0</p>
+    </div>
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
+        <p class="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Available</p>
+        <p class="text-2xl font-black text-emerald-300" id="stat-available">0</p>
+    </div>
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
+        <p class="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider">Allocated</p>
+        <p class="text-2xl font-black text-indigo-300" id="stat-allocated">0</p>
+    </div>
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
+        <p class="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Maintenance</p>
+        <p class="text-2xl font-black text-amber-300" id="stat-maintenance">0</p>
+    </div>
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
+        <p class="text-[10px] font-semibold text-purple-400 uppercase tracking-wider">Total Valuation</p>
+        <p class="text-2xl font-black text-purple-300" id="stat-valuation">₹0.00</p>
+    </div>
 </div>
 
-<div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden">
-    <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-700/60">
-        <div class="flex items-center gap-3">
-            <p class="text-sm font-semibold text-white">Assets</p>
-            <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">{{ object_list|length }}</span>
-        </div>
-        {% if request.user.role in "ADMIN,ASSET_MANAGER" %}
-        <button onclick="document.getElementById('modal-add-asset').classList.remove('hidden')"
-                class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Register Asset
-        </button>
-        {% endif %}
-    </div>
-
-    <div class="overflow-x-auto">
-        <table class="w-full text-xs">
-            <thead>
-                <tr class="border-b border-slate-700/60 bg-slate-800/30">
-                    <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Tag</th>
-                    <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Name</th>
-                    <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Category</th>
-                    <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Serial No.</th>
-                    <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Location</th>
-                    <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Status</th>
-                    <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Acquired</th>
-                    <th class="px-5 py-3"></th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-700/40">
-                {% for asset in object_list %}
-                <tr class="hover:bg-slate-800/40 transition-colors group">
-                    <td class="px-5 py-3.5 font-mono font-bold text-indigo-300">{{ asset.tag }}</td>
-                    <td class="px-5 py-3.5 text-white font-medium">{{ asset.name }}</td>
-                    <td class="px-5 py-3.5 text-slate-400">{{ asset.category.name }}</td>
-                    <td class="px-5 py-3.5 font-mono text-slate-400">{{ asset.serial_number|default:"—" }}</td>
-                    <td class="px-5 py-3.5 text-slate-400">{{ asset.location|default:"—" }}</td>
-                    <td class="px-5 py-3.5">
-                        <span class="status-badge-{{ asset.status }} inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold">
-                            {{ asset.get_status_display }}
-                        </span>
-                    </td>
-                    <td class="px-5 py-3.5 text-slate-400">{{ asset.acquisition_date|date:"M d, Y" }}</td>
-                    <td class="px-5 py-3.5">
-                        <button onclick="openDrawer('{{ asset.pk }}')"
-                                class="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition-all">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+<div class="flex flex-col lg:flex-row gap-6">
+    <!-- Left Column (Filters + Table) -->
+    <div class="flex-1 min-w-0 space-y-6">
+        <!-- Filter Form -->
+        <div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden">
+            <form method="get" id="filter-form">
+                <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-0 divide-x divide-slate-700/60">
+                    <div class="px-4 py-3">
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Asset Tag</label>
+                        <input type="text" name="tag" value="{{ request.GET.tag }}" placeholder="AF-0001"
+                               class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+                    <div class="px-4 py-3">
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Serial Number</label>
+                        <input type="text" name="serial_number" value="{{ request.GET.serial_number }}" placeholder="SN-XXXX"
+                               class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+                    <div class="px-4 py-3">
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Category</label>
+                        <select name="category" class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
+                            <option value="">All Categories</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.pk }}" {% if request.GET.category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="px-4 py-3">
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Status</label>
+                        <select name="status" class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
+                            <option value="">All Statuses</option>
+                            <option value="AVAILABLE"         {% if request.GET.status == "AVAILABLE" %}selected{% endif %}>Available</option>
+                            <option value="ALLOCATED"         {% if request.GET.status == "ALLOCATED" %}selected{% endif %}>Allocated</option>
+                            <option value="RESERVED"          {% if request.GET.status == "RESERVED" %}selected{% endif %}>Reserved</option>
+                            <option value="UNDER_MAINTENANCE" {% if request.GET.status == "UNDER_MAINTENANCE" %}selected{% endif %}>Under Maintenance</option>
+                            <option value="LOST"              {% if request.GET.status == "LOST" %}selected{% endif %}>Lost</option>
+                            <option value="RETIRED"           {% if request.GET.status == "RETIRED" %}selected{% endif %}>Retired</option>
+                            <option value="DISPOSED"          {% if request.GET.status == "DISPOSED" %}selected{% endif %}>Disposed</option>
+                        </select>
+                    </div>
+                    <div class="px-4 py-3">
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Location</label>
+                        <input type="text" name="location" value="{{ request.GET.location }}" placeholder="Floor, Room..."
+                               class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+                    <div class="px-4 py-3 flex items-end gap-2">
+                        <button type="submit" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
-                            Details
+                            Filter
                         </button>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" class="px-5 py-12 text-center">
-                        <svg class="w-10 h-10 mx-auto mb-3 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                        <p class="text-sm text-slate-500 font-medium">No assets match your filters</p>
-                        <p class="text-xs text-slate-600 mt-1">Try adjusting your search criteria</p>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        <a href="{% url 'asset_directory' %}" class="flex items-center justify-center px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition-colors" title="Clear filters">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table View -->
+        <div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-700/60">
+                <div class="flex items-center gap-3">
+                    <p class="text-sm font-semibold text-white">Assets</p>
+                    <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">{{ object_list|length }}</span>
+                </div>
+                {% if request.user.role in "ADMIN,ASSET_MANAGER" %}
+                <button onclick="document.getElementById('modal-add-asset').classList.remove('hidden')"
+                        class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Register Asset
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="border-b border-slate-700/60 bg-slate-800/30">
+                            <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Tag</th>
+                            <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Name</th>
+                            <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Category</th>
+                            <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Serial No.</th>
+                            <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Location</th>
+                            <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Status</th>
+                            <th class="text-left px-5 py-3 text-slate-400 font-semibold uppercase tracking-wide">Acquired</th>
+                            <th class="px-5 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-700/40">
+                        {% for asset in object_list %}
+                        <tr class="hover:bg-slate-800/40 transition-colors group">
+                            <td class="px-5 py-3.5 font-mono font-bold text-indigo-300">{{ asset.tag }}</td>
+                            <td class="px-5 py-3.5 text-white font-medium">{{ asset.name }}</td>
+                            <td class="px-5 py-3.5 text-slate-400">{{ asset.category.name }}</td>
+                            <td class="px-5 py-3.5 font-mono text-slate-400">{{ asset.serial_number|default:"—" }}</td>
+                            <td class="px-5 py-3.5 text-slate-400">{{ asset.location|default:"—" }}</td>
+                            <td class="px-5 py-3.5">
+                                <span class="status-badge-{{ asset.status }} inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold">
+                                    {{ asset.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3.5 text-slate-400">{{ asset.acquisition_date|date:"M d, Y" }}</td>
+                            <td class="px-5 py-3.5">
+                                <button onclick="openDrawer('{{ asset.pk }}')"
+                                        class="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                    Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-5 py-12 text-center">
+                                <svg class="w-10 h-10 mx-auto mb-3 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                <p class="text-sm text-slate-500 font-medium">No assets match your filters</p>
+                                <p class="text-xs text-slate-600 mt-1">Try adjusting your search criteria</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column (Analytics + Exports) -->
+    <div class="w-full lg:w-80 shrink-0 space-y-6">
+        <!-- Distribution Chart Card -->
+        <div class="bg-panel border border-slate-700/60 rounded-xl p-5 flex flex-col items-center">
+            <p class="text-xs font-bold text-white uppercase tracking-wider mb-4 self-start">Category Distribution</p>
+            <div class="w-full h-48 relative flex items-center justify-center">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Export Card -->
+        <div class="bg-panel border border-slate-700/60 rounded-xl p-5 space-y-3">
+            <p class="text-xs font-bold text-white uppercase tracking-wider mb-2">Export Asset Data</p>
+            <p class="text-[11px] text-slate-400">Download the currently filtered asset list in your preferred format.</p>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+                <button onclick="exportData('csv')" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    CSV
+                </button>
+                <button onclick="exportData('json')" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    JSON
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Drawer Detail Overlay -->
 <div id="drawer-backdrop" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onclick="closeDrawer()"></div>
 <div id="asset-drawer" class="drawer-overlay fixed top-0 right-0 h-full w-full max-w-md bg-panel border-l border-slate-700 z-50 flex flex-col shadow-2xl overflow-hidden">
     <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700 flex-shrink-0">
@@ -163,6 +228,27 @@
 
     <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
         <div id="drawer-meta" class="grid grid-cols-2 gap-3"></div>
+
+        {% if request.user.role in "ADMIN,ASSET_MANAGER" %}
+        <div class="border-t border-slate-800 pt-4">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Quick Update Status</p>
+            <div class="flex gap-2">
+                <select id="drawer-status-select" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
+                    <option value="AVAILABLE">Available</option>
+                    <option value="ALLOCATED">Allocated</option>
+                    <option value="RESERVED">Reserved</option>
+                    <option value="UNDER_MAINTENANCE">Under Maintenance</option>
+                    <option value="LOST">Lost</option>
+                    <option value="RETIRED">Retired</option>
+                    <option value="DISPOSED">Disposed</option>
+                </select>
+                <button onclick="updateAssetStatus()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
+                    Save
+                </button>
+            </div>
+            <p id="drawer-status-message" class="text-[10px] mt-1.5 hidden"></p>
+        </div>
+        {% endif %}
 
         <div>
             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Checkout History</p>
@@ -205,6 +291,7 @@
 </script>
 {% endif %}
 
+<!-- Add Asset Modal -->
 <div id="modal-add-asset" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="document.getElementById('modal-add-asset').classList.add('hidden')"></div>
     <div class="relative bg-panel border border-slate-700 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden max-h-screen flex flex-col">
@@ -264,7 +351,17 @@
             location: "{{ asset.location|default:''|escapejs }}",
             acquired: "{{ asset.acquisition_date|date:'M d, Y' }}",
             cost: "{{ asset.cost|default:'' }}",
-            allocations: []
+            allocations: [
+                {% for alloc in asset.allocations.all %}
+                {
+                    user: "{{ alloc.user.get_full_name|default:alloc.user.username|escapejs }}",
+                    checkedOut: "{{ alloc.checked_out_at|date:'M d, Y' }}",
+                    expectedReturn: "{{ alloc.expected_return_date|default:''|date:'M d, Y' }}",
+                    actualReturn: "{{ alloc.actual_return_date|default:''|date:'M d, Y' }}",
+                    active: {% if alloc.actual_return_date %}false{% else %}true{% endif %}
+                }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
         }{% if not forloop.last %},{% endif %}
         {% endfor %}
     };
@@ -279,16 +376,24 @@
         'DISPOSED': 'text-slate-500',
     };
 
+    let currentDrawerAssetId = null;
+
     function populateDrawer(data) {
+        currentDrawerAssetId = data.pk;
         document.getElementById('drawer-asset-name').textContent = data.name;
         document.getElementById('drawer-asset-tag').textContent = data.tag;
+
+        const statusSelect = document.getElementById('drawer-status-select');
+        if (statusSelect) {
+            statusSelect.value = data.status;
+        }
 
         const metaEl = document.getElementById('drawer-meta');
         const colorClass = statusColors[data.status] || 'text-slate-300';
         metaEl.innerHTML = `
             <div class="bg-slate-800/60 rounded-lg p-3">
                 <p class="text-xs text-slate-500 mb-1">Status</p>
-                <p class="text-xs font-bold ${colorClass}">${data.statusDisplay}</p>
+                <p class="text-xs font-bold ${colorClass}" id="drawer-meta-status-display">${data.statusDisplay}</p>
             </div>
             <div class="bg-slate-800/60 rounded-lg p-3">
                 <p class="text-xs text-slate-500 mb-1">Category</p>
@@ -308,7 +413,7 @@
             </div>
             <div class="bg-slate-800/60 rounded-lg p-3">
                 <p class="text-xs text-slate-500 mb-1">Cost</p>
-                <p class="text-xs font-semibold text-white">${data.cost ? '₹' + data.cost : '—'}</p>
+                <p class="text-xs font-semibold text-white">${data.cost ? '₹' + parseFloat(data.cost).toLocaleString('en-IN') : '—'}</p>
             </div>
         `;
 
@@ -335,6 +440,55 @@
         }
     }
 
+    function updateAssetStatus() {
+        if (!currentDrawerAssetId) return;
+        const status = document.getElementById('drawer-status-select').value;
+        const msgEl = document.getElementById('drawer-status-message');
+        
+        msgEl.className = "text-[10px] mt-1.5 text-slate-400";
+        msgEl.textContent = "Updating...";
+        msgEl.classList.remove('hidden');
+
+        const formData = new FormData();
+        formData.append('action', 'update_status');
+        formData.append('asset_id', currentDrawerAssetId);
+        formData.append('status', status);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('{% url "asset_directory" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                msgEl.className = "text-[10px] mt-1.5 text-emerald-400 font-medium";
+                msgEl.textContent = "Status updated successfully!";
+                
+                // Update local asset index
+                if (assetIndex[currentDrawerAssetId]) {
+                    assetIndex[currentDrawerAssetId].status = data.status_code;
+                    assetIndex[currentDrawerAssetId].statusDisplay = data.new_status;
+                }
+                
+                // Reload after short delay to show success indicator
+                setTimeout(() => {
+                    window.location.reload();
+                }, 800);
+            } else {
+                msgEl.className = "text-[10px] mt-1.5 text-red-400 font-medium";
+                msgEl.textContent = data.error || "Failed to update status";
+            }
+        })
+        .catch(err => {
+            msgEl.className = "text-[10px] mt-1.5 text-red-400 font-medium";
+            msgEl.textContent = "An error occurred. Please try again.";
+        });
+    }
+
     function openDrawer(pk) {
         const data = assetIndex[pk];
         if (!data) return;
@@ -351,6 +505,137 @@
         document.getElementById('asset-drawer').classList.remove('open');
         setTimeout(() => document.getElementById('drawer-backdrop').classList.add('hidden'), 300);
     }
+
+    // Export currently loaded assets into CSV or JSON
+    function exportData(format) {
+        const rows = [];
+        rows.push(['Tag', 'Name', 'Category', 'Serial Number', 'Location', 'Status', 'Acquired Date', 'Cost']);
+
+        for (const pk in assetIndex) {
+            const asset = assetIndex[pk];
+            rows.push([
+                asset.tag,
+                asset.name,
+                asset.category,
+                asset.serial || '',
+                asset.location || '',
+                asset.statusDisplay,
+                asset.acquired,
+                asset.cost || '0'
+            ]);
+        }
+
+        if (format === 'csv') {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            rows.forEach(row => {
+                const escapedRow = row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",");
+                csvContent += escapedRow + "\r\n";
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `assetflow_export_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else if (format === 'json') {
+            const assetsList = Object.values(assetIndex).map(asset => ({
+                tag: asset.tag,
+                name: asset.name,
+                category: asset.category,
+                serial_number: asset.serial,
+                location: asset.location,
+                status: asset.statusDisplay,
+                acquisition_date: asset.acquired,
+                cost: asset.cost
+            }));
+            const jsonString = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(assetsList, null, 2));
+            const link = document.createElement("a");
+            link.setAttribute("href", jsonString);
+            link.setAttribute("download", `assetflow_export_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Calculate statistics from local index
+        let total = 0;
+        let available = 0;
+        let allocated = 0;
+        let maintenance = 0;
+        let valuation = 0;
+        const categoryCounts = {};
+
+        for (const pk in assetIndex) {
+            const asset = assetIndex[pk];
+            total++;
+            if (asset.status === 'AVAILABLE') available++;
+            else if (asset.status === 'ALLOCATED') allocated++;
+            else if (asset.status === 'UNDER_MAINTENANCE') maintenance++;
+            
+            const costVal = parseFloat(asset.cost);
+            if (!isNaN(costVal)) {
+                valuation += costVal;
+            }
+
+            categoryCounts[asset.category] = (categoryCounts[asset.category] || 0) + 1;
+        }
+
+        document.getElementById('stat-total').textContent = total;
+        document.getElementById('stat-available').textContent = available;
+        document.getElementById('stat-allocated').textContent = allocated;
+        document.getElementById('stat-maintenance').textContent = maintenance;
+        document.getElementById('stat-valuation').textContent = '₹' + valuation.toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        // Initialize Category Distribution Chart using Chart.js
+        const chartCanvas = document.getElementById('categoryChart');
+        if (chartCanvas) {
+            const ctx = chartCanvas.getContext('2d');
+            const categories = Object.keys(categoryCounts);
+            const counts = Object.values(categoryCounts);
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: [
+                            'rgba(99, 102, 241, 0.75)',  // Indigo
+                            'rgba(16, 185, 129, 0.75)',  // Emerald
+                            'rgba(14, 165, 233, 0.75)',  // Sky
+                            'rgba(245, 158, 11, 0.75)',  // Amber
+                            'rgba(168, 85, 247, 0.75)'   // Purple
+                        ],
+                        borderColor: '#1e293b',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: '#94a3b8',
+                                font: {
+                                    size: 9
+                                },
+                                boxWidth: 8
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
 
     {% if form.errors %}
     document.addEventListener('DOMContentLoaded', function() {

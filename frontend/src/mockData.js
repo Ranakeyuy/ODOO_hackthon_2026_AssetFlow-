@@ -38,6 +38,44 @@ export const INITIAL_ASSETS = [
   { id: 10, tag: 'AF-0010', name: 'Toyota Innova Crysta', serialNumber: 'TYT-INN-2024', categoryId: 3, status: 'RESERVED', location: 'Garage Plot B', is_shared: true, acquisitionDate: '2024-12-01', cost: 28500, condition: 'Excellent', attributes: { licensePlate: 'GJ-05-AB-1234', engineType: 'Inline-4', fuelType: 'Petrol', seatingCapacity: 7 } },
 ];
 
+// Dynamically generate extra assets to match 80+ assets for Phase 3 mockup
+const categoriesList = [
+  { id: 1, prefix: 'AF', names: ['MacBook Pro 14', 'ThinkPad X1 Carbon', 'HP EliteBook 830', 'Dell XPS 13', 'Lenovo Yoga 9i'] },
+  { id: 2, prefix: 'FN', names: ['Steelcase Gesture Chair', 'Task Chair Basic', 'Whiteboard Mobile', 'Executive Desk Oak'] },
+  { id: 3, prefix: 'VH', names: ['Ford Transit Van', 'Toyota Innova Crysta', 'Tesla Model 3'] },
+  { id: 4, prefix: 'AV', names: ['Epson EB-L615U Projector', 'Sony Alpha 7 IV', 'Shure SM7B Microphone'] },
+  { id: 5, prefix: 'NW', names: ['Aruba Access Point 303', 'Palo Alto PA-3220', 'Fortinet FortiGate 60F'] }
+];
+const statuses = ['AVAILABLE', 'ALLOCATED', 'RESERVED', 'UNDER_MAINTENANCE', 'LOST', 'RETIRED', 'DISPOSED'];
+
+for (let i = 11; i <= 85; i++) {
+  const cat = categoriesList[i % categoriesList.length];
+  const nameTemplate = cat.names[i % cat.names.length];
+  const name = `${nameTemplate} #${i}`;
+  const tag = `AF-${String(i).padStart(4, '0')}`;
+  const serial = `SN-${cat.id}${cat.prefix}${String(i).padStart(5, '0')}`;
+  const status = statuses[i % statuses.length];
+  const location = `Floor ${(i % 4) + 1} - Zone ${String.fromCharCode(65 + (i % 3))}`;
+  const is_shared = (cat.id === 3 || cat.id === 4);
+  const cost = 100 + (i * 25) % 1500;
+  
+  INITIAL_ASSETS.push({
+    id: i,
+    tag: tag,
+    name: name,
+    serialNumber: serial,
+    categoryId: cat.id,
+    status: status,
+    location: location,
+    is_shared: is_shared,
+    acquisitionDate: '2026-04-12',
+    cost: cost,
+    condition: i % 2 === 0 ? 'Good' : 'Excellent',
+    attributes: cat.id === 1 ? { warrantyYears: 3, manufacturer: 'Apple', modelNumber: 'MK-GEN', processorType: 'M-Generic' } : {}
+  });
+}
+
+
 export const INITIAL_ALLOCATIONS = [
   { id: 1, assetId: 1, userId: 4, checkedOutAt: '2026-07-01T09:00:00Z', expectedReturnDate: '2026-07-10', actualReturnDate: null },
   { id: 2, assetId: 6, userId: 5, checkedOutAt: '2026-07-05T10:00:00Z', expectedReturnDate: '2026-07-25', actualReturnDate: null },
