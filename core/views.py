@@ -96,3 +96,13 @@ class ResolveMaintenanceView(LoginRequiredMixin, View):
         maintenance_request = get_object_or_404(MaintenanceRequest, pk=pk)
         maintenance_request.resolve()
         return redirect('dashboard')
+
+class UserProfileView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['allocations'] = AssetAllocation.objects.filter(user=self.request.user, actual_return_date__isnull=True).select_related('asset')
+        context['bookings'] = ResourceBooking.objects.filter(user=self.request.user, end_time__gt=timezone.now()).select_related('resource')
+        return context
+

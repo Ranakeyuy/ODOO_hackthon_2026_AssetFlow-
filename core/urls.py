@@ -8,6 +8,7 @@ from core.views import (
     ApproveTransferView,
     ApproveMaintenanceView,
     ResolveMaintenanceView,
+    UserProfileView,
 )
 
 urlpatterns = [
@@ -19,4 +20,7 @@ urlpatterns = [
     path('transfers/<int:pk>/approve/', ApproveTransferView.as_view(), name='approve_transfer'),
     path('maintenance/<int:pk>/approve/', ApproveMaintenanceView.as_view(), name='approve_maintenance'),
     path('maintenance/<int:pk>/resolve/', ResolveMaintenanceView.as_view(), name='resolve_maintenance'),
+    path('accounts/profile/', UserProfileView.as_view(), name='profile'),
+    path('profile/', UserProfileView.as_view()),
 ]
+

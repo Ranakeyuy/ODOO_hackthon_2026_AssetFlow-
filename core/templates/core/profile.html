@@ -1,0 +1,61 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Profile | AssetFlow</title>
+    <link rel="stylesheet" href="{% static 'core/style.css' %}">
+</head>
+<body>
+    <div class="dashboard-container" style="max-width: 800px;">
+        <h2>User Profile</h2>
+        
+        <div class="kpi-grid" style="grid-template-cols: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 2rem;">
+            <div class="kpi-card">
+                <span>Username</span>
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-top: 0.5rem; word-break: break-all;">{{ request.user.username }}</h3>
+            </div>
+            <div class="kpi-card">
+                <span>Email Address</span>
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-top: 0.5rem; word-break: break-all;">{{ request.user.email|default:"Not Provided" }}</h3>
+            </div>
+            <div class="kpi-card">
+                <span>Role</span>
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-top: 0.5rem;">{{ request.user.role }}</h3>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 2rem;">
+            <div>
+                <h3>My Active Allocations</h3>
+                <ul>
+                    {% for a in allocations %}
+                        <li>
+                            <strong>{{ a.asset.name }}</strong> (Tag: {{ a.asset.tag }}) <br>
+                            Checked Out: <span style="font-family: monospace; font-size: 0.75rem; color: #4f46e5;">{{ a.checked_out_at|date:"Y-m-d" }}</span>
+                        </li>
+                    {% empty %}
+                        <li>No active asset allocations.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div>
+                <h3>My Active Bookings</h3>
+                <ul>
+                    {% for b in bookings %}
+                        <li>
+                            <strong>{{ b.resource.name }}</strong> (Tag: {{ b.resource.tag }}) <br>
+                            Time: <span style="font-family: monospace; font-size: 0.75rem; color: #4f46e5;">{{ b.start_time }} to {{ b.end_time }}</span>
+                        </li>
+                    {% empty %}
+                        <li>No active resource bookings.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 2.5rem; border-t: 1px solid #e2e8f0; padding-top: 1.5rem;">
+            <a href="{% url 'dashboard' %}">&larr; Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
