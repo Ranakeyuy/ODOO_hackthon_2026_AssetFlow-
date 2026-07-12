@@ -87,7 +87,7 @@ class Asset(models.Model):
     attributes = models.JSONField(default=dict, blank=True)
 
     def save(self, *args, **kwargs):
-        is_new = not self.pk
+        is_new = self._state.adding
         with transaction.atomic():
             if not self.tag:
                 last_asset = Asset.objects.select_for_update().order_by('-id').first()
@@ -96,7 +96,10 @@ class Asset(models.Model):
             
             old_status = None
             if not is_new:
-                old_status = Asset.objects.get(pk=self.pk).status
+                try:
+                    old_status = Asset.objects.get(pk=self.pk).status
+                except Asset.DoesNotExist:
+                    is_new = True
                 
             super().save(*args, **kwargs)
             
@@ -139,7 +142,7 @@ class AssetAllocation(models.Model):
 
     def save(self, *args, **kwargs):
         self.clean()
-        is_new = not self.pk
+        is_new = self._state.adding
         with transaction.atomic():
             super().save(*args, **kwargs)
             if is_new and self.actual_return_date is None:
@@ -310,9 +313,13 @@ class MaintenanceRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
+        is_new = self._state.adding
         old_status = None
-        if self.pk:
-            old_status = MaintenanceRequest.objects.get(pk=self.pk).status
+        if not is_new:
+            try:
+                old_status = MaintenanceRequest.objects.get(pk=self.pk).status
+            except MaintenanceRequest.DoesNotExist:
+                pass
         
         with transaction.atomic():
             super().save(*args, **kwargs)

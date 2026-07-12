@@ -1,0 +1,98 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile | AssetFlow ERP</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glow {
+            box-shadow: 0 0 40px 5px rgba(99, 102, 241, 0.15);
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col justify-center items-center relative overflow-y-auto py-12 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-black font-sans text-slate-300">
+    
+    <!-- Background Accents -->
+    <div class="absolute w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[100px] top-[-10%] left-[-10%] pointer-events-none"></div>
+    <div class="absolute w-[600px] h-[600px] rounded-full bg-purple-500/5 blur-[120px] bottom-[-20%] right-[-10%] pointer-events-none"></div>
+
+    <div class="w-full max-w-2xl px-6 z-10">
+        <!-- Logo Header -->
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-extrabold text-xl tracking-wider shadow-lg shadow-indigo-500/20">
+                AF
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-white tracking-tight">AssetFlow ERP</h1>
+                <p class="text-xs text-slate-400 font-semibold tracking-wider uppercase">User Directory & Profile</p>
+            </div>
+        </div>
+
+        <!-- Glassmorphic Profile Card -->
+        <div class="glass glow rounded-3xl p-8 shadow-2xl space-y-6">
+            <div class="flex items-center gap-6 border-b border-slate-800 pb-6">
+                <!-- Avatar -->
+                <div class="w-20 h-20 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400 font-bold text-3xl">
+                    {{ user.username|slice:":2"|upper }}
+                </div>
+                <div>
+                    <h2 class="text-2xl font-extrabold text-white">{{ user.get_full_name|default:user.username }}</h2>
+                    <span class="inline-block mt-1.5 px-3 py-1 bg-indigo-500/10 border border-indigo-500/25 rounded-full text-xs font-bold text-indigo-400">
+                        {{ user.get_role_display }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Details list -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Username</span>
+                    <p class="text-sm font-semibold text-white">{{ user.username }}</p>
+                </div>
+                <div>
+                    <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Corporate Email</span>
+                    <p class="text-sm font-semibold text-white">{{ user.email|default:"N/A" }}</p>
+                </div>
+                <div>
+                    <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">User ID (UUID)</span>
+                    <p class="text-xs font-mono text-slate-400">{{ user.id }}</p>
+                </div>
+                <div>
+                    <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Date Joined</span>
+                    <p class="text-sm font-semibold text-white">{{ user.date_joined|date:"F d, Y" }}</p>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800/80 pt-6 flex justify-between items-center">
+                <a href="/logout/" class="px-4 py-2 bg-slate-800 hover:bg-slate-700/80 text-slate-300 font-bold rounded-xl text-xs transition-colors border border-slate-700">
+                    Sign Out Session
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
