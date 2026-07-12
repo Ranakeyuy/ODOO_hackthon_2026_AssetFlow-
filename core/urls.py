@@ -11,6 +11,9 @@ from core.views import (
     ResolveMaintenanceView,
     UserProfileView,
     IoTTelemetryReceiveView,
+    IoTDeviceListView,
+    ResolveIoTAlertView,
+    SystemLogListView,
 )
 
 urlpatterns = [
@@ -26,4 +29,7 @@ urlpatterns = [
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('accounts/profile/', UserProfileView.as_view()),
     path('api/iot/telemetry/', IoTTelemetryReceiveView.as_view(), name='iot_telemetry_receive'),
+    path('iot/', IoTDeviceListView.as_view(), name='iot_dashboard'),
+    path('iot/alert/<int:pk>/resolve/', ResolveIoTAlertView.as_view(), name='resolve_iot_alert'),
+    path('logs/', SystemLogListView.as_view(), name='system_logs'),
 ]

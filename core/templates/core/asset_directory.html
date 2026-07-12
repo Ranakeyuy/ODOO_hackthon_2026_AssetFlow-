@@ -55,7 +55,7 @@
             <form method="get" action="{% url 'asset_directory' %}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="md:col-span-2">
                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Search Query</label>
-                    <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Search by tag, name, serial..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition-colors">
+                    <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Search by tag, name, serial, component, attributes..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition-colors">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Status</label>
@@ -122,7 +122,14 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-700/40">
-                        {% for asset in object_list %}
+                        {% regroup object_list by category as category_list %}
+                        {% for category_group in category_list %}
+                        <tr class="bg-slate-950/40 border-y border-slate-700/50">
+                            <td colspan="8" class="px-5 py-2 text-[10px] font-black uppercase text-indigo-400 tracking-wider">
+                                {{ category_group.grouper.name }}
+                            </td>
+                        </tr>
+                        {% for asset in category_group.list %}
                         <tr class="hover:bg-slate-800/40 transition-colors group">
                             <td class="px-5 py-3.5 font-mono font-bold text-indigo-300">{{ asset.tag }}</td>
                             <td class="px-5 py-3.5 text-white font-medium">{{ asset.name }}</td>
@@ -151,6 +158,7 @@
                                 {% endif %}
                             </td>
                         </tr>
+                        {% endfor %}
                         {% empty %}
                         <tr>
                             <td colspan="8" class="px-5 py-12 text-center">

@@ -63,7 +63,8 @@ def seed_db():
         {"id": 3, "name": "Conference Rooms", "description": "Meeting rooms", "schema": {"capacity": "number"}},
         {"id": 4, "name": "Networking", "description": "Routers and switches", "schema": {"ports": "number"}},
         {"id": 5, "name": "Furniture", "description": "Office desks and chairs", "schema": {"type": "string"}},
-        {"id": 6, "name": "IoT Hardware", "description": "Microcontrollers, sensors, relays, and other modules", "schema": {"type": "string", "voltage": "string", "protocol": "string"}}
+        {"id": 6, "name": "IoT Hardware", "description": "Microcontrollers, sensors, relays, and other modules", "schema": {"type": "string", "voltage": "string", "protocol": "string"}},
+        {"id": 7, "name": "AV Equipment", "description": "Projectors, screens, and media systems", "schema": {"lumens": "number"}}
     ]
     
     cat_map = {}
@@ -89,7 +90,7 @@ def seed_db():
         {"id": 9, "tag": "CHR-001", "name": "Herman Miller Aeron", "serial_number": "HM829101", "categoryId": 5, "status": "AVAILABLE", "location": "Office 3A", "is_shared": False, "attributes": {"type": "Ergonomic Chair"}},
         {"id": 10, "tag": "DSK-001", "name": "Standing Desk Pro", "serial_number": "DK92819", "categoryId": 5, "status": "AVAILABLE", "location": "Office 3B", "is_shared": False, "attributes": {"type": "Standing Desk"}},
         {"id": 11, "tag": "SRV-002", "name": "HP ProLiant DL360", "serial_number": "HP938210", "categoryId": 2, "status": "AVAILABLE", "location": "Server Room B", "is_shared": True, "attributes": {"cores": 16, "memory": "64GB"}},
-        {"id": 12, "tag": "PRJ-001", "name": "Epson Smart Projector", "serial_number": "EPS92810", "categoryId": 3, "status": "AVAILABLE", "location": "Boardroom Alpha", "is_shared": True, "attributes": {"capacity": 2000}}
+        {"id": 12, "tag": "PRJ-001", "name": "Epson Smart Projector", "serial_number": "EPS92810", "categoryId": 7, "status": "AVAILABLE", "location": "Boardroom Alpha", "is_shared": True, "attributes": {"lumens": 2000}}
     ]
     
     statuses = [Asset.AVAILABLE, Asset.ALLOCATED, Asset.RESERVED, Asset.UNDER_MAINTENANCE, Asset.LOST, Asset.RETIRED, Asset.DISPOSED]
@@ -203,8 +204,13 @@ def seed_db():
         checked_out = datetime.fromisoformat(ald["checkedOutAt"].replace('Z', '+00:00'))
         expected = datetime.strptime(ald["expectedReturnDate"], "%Y-%m-%d").date() if ald["expectedReturnDate"] else None
         
+        asset = asset_map[ald["assetId"]]
+        original_status = asset.status
+        asset.status = Asset.AVAILABLE
+        asset.save(update_fields=["status"])
+        
         AssetAllocation.objects.get_or_create(
-            asset=asset_map[ald["assetId"]],
+            asset=asset,
             user=user_map[ald["userId"]],
             checked_out_at=checked_out,
             defaults={

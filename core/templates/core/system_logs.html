@@ -1,0 +1,193 @@
+{% extends "core/base.html" %}
+
+{% block title %}System Audit Logs | AssetFlow{% endblock %}
+{% block page_title %}System Audit Logs{% endblock %}
+
+{% block extra_head %}
+<!-- Include SheetJS XLSX Library -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div>
+        <p class="text-sm text-slate-400">View complete historical audit trail of all allocations, maintenance, transfers, and IoT critical alerts.</p>
+    </div>
+    <div>
+        <button onclick="exportLogsToExcel()" 
+                class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors shadow-lg shadow-emerald-600/10">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Export Logs to Excel
+        </button>
+    </div>
+</div>
+
+<!-- Filters Panel -->
+<div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Search Logs</label>
+            <input type="text" name="q" value="{{ q|default:'' }}" placeholder="Search by description, tag, actor..." 
+                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-indigo-500 outline-none">
+        </div>
+        
+        <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Action Type</label>
+            <select name="action_type" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-indigo-500 outline-none">
+                <option value="">All Action Types</option>
+                {% for type in action_types %}
+                <option value="{{ type }}" {% if type == selected_action_type %}selected{% endif %}>{{ type }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="submit" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors">
+                Apply Filters
+            </button>
+            <a href="{% url 'system_logs' %}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold rounded-lg transition-colors text-center">
+                Clear
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Logs Table -->
+<div class="bg-slate-800/20 border border-slate-700/50 rounded-xl overflow-hidden">
+    <div class="overflow-x-auto">
+        <table id="logs-table" class="w-full text-xs text-left">
+            <thead>
+                <tr class="border-b border-slate-800 text-slate-400 bg-slate-900/40 font-semibold uppercase tracking-wider text-[10px]">
+                    <th class="px-5 py-3">Timestamp</th>
+                    <th class="px-5 py-3">Actor</th>
+                    <th class="px-5 py-3">Action Type</th>
+                    <th class="px-5 py-3">Asset</th>
+                    <th class="px-5 py-3">Description</th>
+                    <th class="px-5 py-3">State Change</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/80">
+                {% for log in logs %}
+                <tr class="hover:bg-slate-800/30 transition-colors text-slate-300 align-top">
+                    <td class="px-5 py-4 whitespace-nowrap text-slate-400 font-mono">
+                        {{ log.timestamp|date:"Y-m-d H:i:s" }}
+                    </td>
+                    <td class="px-5 py-4 whitespace-nowrap font-medium text-slate-200">
+                        {{ log.actor.username|default:"System (Auto)" }}
+                    </td>
+                    <td class="px-5 py-4 whitespace-nowrap">
+                        <span class="px-2.5 py-0.5 rounded text-[9px] font-extrabold tracking-wide uppercase
+                            {% if 'ALERT' in log.action_type or 'FAIL' in log.action_type %}
+                                bg-red-500/10 text-red-400 border border-red-500/20
+                            {% elif 'START' in log.action_type or 'OPEN' in log.action_type %}
+                                bg-yellow-500/10 text-yellow-400 border border-yellow-500/20
+                            {% elif 'RESOLVE' in log.action_type or 'CLOSE' in log.action_type or 'END' in log.action_type %}
+                                bg-green-500/10 text-green-400 border border-green-500/20
+                            {% else %}
+                                bg-slate-700/30 text-slate-400 border border-slate-700/40
+                            {% endif %}">
+                            {{ log.action_type }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-4 whitespace-nowrap font-mono text-[11px]">
+                        {% if log.target_asset %}
+                        <a href="{% url 'asset_directory' %}?selected_asset_id={{ log.target_asset.id }}" class="text-indigo-400 hover:text-indigo-300 font-semibold underline">
+                            {{ log.target_asset_tag }}
+                        </a>
+                        {% else %}
+                        <span class="text-slate-500">{{ log.target_asset_tag }} (Deleted)</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-4 max-w-xs md:max-w-md break-words text-slate-300">
+                        {{ log.action }}
+                    </td>
+                    <td class="px-5 py-4 whitespace-nowrap">
+                        {% if log.before_state or log.after_state %}
+                        <div class="flex items-center gap-1.5 font-mono text-[10px]">
+                            <span class="text-slate-500">{{ log.before_state|default:"None" }}</span>
+                            <svg class="w-3 h-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                            </svg>
+                            <span class="text-slate-200 font-bold">{{ log.after_state|default:"None" }}</span>
+                        </div>
+                        {% else %}
+                        <span class="text-slate-600 font-mono">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-5 py-8 text-center text-slate-500">
+                        No audit log entries matching criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function exportLogsToExcel() {
+        const table = document.getElementById("logs-table");
+        const rows = table.querySelectorAll("tbody tr");
+        
+        const logsList = [];
+        
+        rows.forEach(row => {
+            const cells = row.querySelectorAll("td");
+            if (cells.length < 6) return; // Skip empty rows
+
+            // Extract text contents and clean whitespace
+            const timestamp = cells[0].innerText.trim();
+            const actor = cells[1].innerText.trim();
+            const actionType = cells[2].innerText.trim();
+            const assetTag = cells[3].innerText.trim();
+            const actionDescription = cells[4].innerText.trim();
+            
+            // Extract state change details
+            let beforeState = "";
+            let afterState = "";
+            const stateDiv = cells[5].querySelector("div");
+            if (stateDiv) {
+                const spans = stateDiv.querySelectorAll("span");
+                if (spans.length >= 2) {
+                    beforeState = spans[0].innerText.trim();
+                    afterState = spans[1].innerText.trim();
+                }
+            } else {
+                const val = cells[5].innerText.trim();
+                if (val !== "—") {
+                    const splitVal = val.split(">");
+                    if (splitVal.length >= 2) {
+                        beforeState = splitVal[0].trim();
+                        afterState = splitVal[1].trim();
+                    }
+                }
+            }
+
+            logsList.push({
+                'Timestamp': timestamp,
+                'Actor': actor,
+                'Action Type': actionType,
+                'Asset Tag': assetTag,
+                'Description': actionDescription,
+                'Before State': beforeState,
+                'After State': afterState
+            });
+        });
+
+        if (logsList.length === 0) {
+            alert("No logs to export.");
+            return;
+        }
+
+        const ws = XLSX.utils.json_to_sheet(logsList);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Audit Logs");
+        XLSX.writeFile(wb, `assetflow_audit_logs_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+</script>
+{% endblock %}

@@ -13,7 +13,7 @@ import json
 from core.models import (
     User, Asset, AssetAllocation, ResourceBooking,
     TransferRequest, MaintenanceRequest, AssetCategory,
-    IoTDevice, IoTAlert
+    IoTDevice, IoTAlert, SystemLog
 )
 from core.forms import (
     CustomUserCreationForm, AssetRegistrationForm,
@@ -72,7 +72,7 @@ class AssetDirectoryView(LoginRequiredMixin, View):
     template_name = 'core/asset_directory.html'
 
     def get_queryset(self, request):
-        queryset = Asset.objects.select_related('category').prefetch_related('allocations__user').order_by('tag')
+        queryset = Asset.objects.select_related('category').prefetch_related('allocations__user').order_by('category__name', 'tag')
         q = request.GET.get('q')
         tag = request.GET.get('tag')
         serial_number = request.GET.get('serial_number')
@@ -82,7 +82,11 @@ class AssetDirectoryView(LoginRequiredMixin, View):
 
         if q:
             queryset = queryset.filter(
-                Q(tag__icontains=q) | Q(name__icontains=q) | Q(serial_number__icontains=q)
+                Q(tag__icontains=q) |
+                Q(name__icontains=q) |
+                Q(serial_number__icontains=q) |
+                Q(attributes__icontains=q) |
+                Q(iot_device__device_id__icontains=q)
             )
         if tag:
             queryset = queryset.filter(tag__icontains=tag)
@@ -246,3 +250,77 @@ class IoTTelemetryReceiveView(View):
             return JsonResponse({"error": "Invalid JSON payload."}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
+class IoTDeviceListView(LoginRequiredMixin, View):
+    template_name = 'core/iot_dashboard.html'
+
+    def get_context(self, form=None):
+        return {
+            'devices': IoTDevice.objects.select_related('asset').all(),
+            'active_alerts': IoTAlert.objects.filter(is_resolved=False).select_related('iot_device__asset').order_by('-created_at'),
+            'resolved_alerts': IoTAlert.objects.filter(is_resolved=True).select_related('iot_device__asset').order_by('-resolved_at')[:20],
+            'form': form or IoTDeviceForm(),
+            'available_assets_no_iot': Asset.objects.filter(iot_device__isnull=True),
+        }
+
+    def get(self, request):
+        return render(request, self.template_name, self.get_context())
+
+    def post(self, request):
+        if request.user.role not in [User.ADMIN, User.ASSET_MANAGER]:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Permission denied")
+        form = IoTDeviceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('iot_dashboard')
+        return render(request, self.template_name, self.get_context(form))
+
+class ResolveIoTAlertView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        if request.user.role not in [User.ADMIN, User.ASSET_MANAGER]:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Permission denied")
+        alert = get_object_or_404(IoTAlert, pk=pk)
+        alert.resolve()
+        
+        # Transition device status back to ONLINE if no more unresolved alerts remain
+        device = alert.iot_device
+        if not device.alerts.filter(is_resolved=False).exists():
+            device.status = IoTDevice.ONLINE
+            device.save()
+            
+        return redirect('iot_dashboard')
+
+class SystemLogListView(LoginRequiredMixin, View):
+    template_name = 'core/system_logs.html'
+
+    def get(self, request):
+        if request.user.role not in [User.ADMIN, User.ASSET_MANAGER]:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Permission denied")
+            
+        queryset = SystemLog.objects.select_related('actor', 'target_asset').order_by('-timestamp')
+        
+        # Filtering
+        action_type = request.GET.get('action_type')
+        q = request.GET.get('q')
+        
+        if action_type:
+            queryset = queryset.filter(action_type=action_type)
+        if q:
+            queryset = queryset.filter(
+                Q(action__icontains=q) | 
+                Q(target_asset_tag__icontains=q) |
+                Q(actor__username__icontains=q)
+            )
+            
+        action_types = SystemLog.objects.values_list('action_type', flat=True).distinct()
+        
+        context = {
+            'logs': queryset,
+            'action_types': action_types,
+            'selected_action_type': action_type,
+            'q': q,
+        }
+        return render(request, self.template_name, context)

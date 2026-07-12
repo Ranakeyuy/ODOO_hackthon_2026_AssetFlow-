@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
-from core.models import User, Department, AssetCategory, Asset, AssetAllocation, ResourceBooking, TransferRequest, MaintenanceRequest, AuditCycle, AuditEntry, IoTDevice, IoTAlert
+from core.models import User, Department, AssetCategory, Asset, AssetAllocation, ResourceBooking, TransferRequest, MaintenanceRequest, AuditCycle, AuditEntry, IoTDevice, IoTAlert, SystemLog
 
 class AssetFlowModelTests(TestCase):
     def setUp(self):
@@ -166,3 +166,81 @@ class AssetFlowModelTests(TestCase):
         device.record_telemetry({"temperature": 55.0})
         self.asset.refresh_from_db()
         self.assertEqual(self.asset.status, Asset.UNDER_MAINTENANCE)
+
+    def test_iot_dashboard_view(self):
+        self.client.login(username='emp1', password='password123')
+        response = self.client.get('/iot/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_resolve_iot_alert_view(self):
+        device = IoTDevice.objects.create(
+            asset=self.asset,
+            device_id="SEN-TEST-ALERT",
+            status=IoTDevice.ONLINE,
+            alert_thresholds={"max_temperature": 50.0}
+        )
+        device.record_telemetry({"temperature": 60.0})
+        self.assertEqual(device.status, IoTDevice.ALERT)
+        alert = IoTAlert.objects.filter(iot_device=device, is_resolved=False).first()
+        self.assertIsNotNone(alert)
+        
+        self.client.login(username='admin', password='password123')
+        response = self.client.post(f'/iot/alert/{alert.pk}/resolve/')
+        self.assertEqual(response.status_code, 302)
+        
+        alert.refresh_from_db()
+        device.refresh_from_db()
+        self.assertTrue(alert.is_resolved)
+        self.assertEqual(device.status, IoTDevice.ONLINE)
+
+    def test_system_logs_view_restricted(self):
+        self.client.login(username='emp1', password='password123')
+        response = self.client.get('/logs/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_system_logs_view_admin(self):
+        self.client.login(username='admin', password='password123')
+        SystemLog.objects.create(
+            actor=self.admin,
+            target_asset=self.asset,
+            target_asset_tag=self.asset.tag,
+            action_type="TEST_ACTION",
+            action="Admin performed a test action"
+        )
+        
+        response = self.client.get('/logs/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Admin performed a test action")
+        
+        response_filtered = self.client.get('/logs/?action_type=OTHER_ACTION')
+        self.assertNotContains(response_filtered, "Admin performed a test action")
+
+    def test_asset_directory_search_attributes_and_iot_device(self):
+        category = AssetCategory.objects.create(
+            name='Test IoT Devices',
+            description='Test category',
+            schema={'voltage': 'string'}
+        )
+        asset1 = Asset.objects.create(
+            name='Smart Sensor Node X',
+            serial_number='54321',
+            category=category,
+            status=Asset.AVAILABLE,
+            attributes={'voltage': '9V'}
+        )
+        device = IoTDevice.objects.create(
+            asset=asset1,
+            device_id="SEN-TEST-SEARCH-NODE",
+            status=IoTDevice.ONLINE,
+            alert_thresholds={}
+        )
+        
+        self.client.login(username='emp1', password='password123')
+        
+        response = self.client.get('/assets/?q=9V')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Smart Sensor Node X')
+        
+        response2 = self.client.get('/assets/?q=SEN-TEST-SEARCH-NODE')
+        self.assertEqual(response2.status_code, 200)
+        self.assertContains(response2, 'Smart Sensor Node X')
