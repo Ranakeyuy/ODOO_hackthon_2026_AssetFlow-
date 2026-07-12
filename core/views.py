@@ -148,6 +148,9 @@ class AssetDirectoryView(LoginRequiredMixin, View):
                     asset.save()
                 return redirect('asset_directory')
 
+        if request.user.role not in [User.ADMIN, User.ASSET_MANAGER]:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Permission denied")
         form = AssetRegistrationForm(request.POST)
         if form.is_valid():
             form.save()
@@ -227,6 +230,9 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
 @method_decorator(csrf_exempt, name='dispatch')
 class IoTTelemetryReceiveView(View):
     def post(self, request, *args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or auth_header != 'Bearer secure_iot_telemetry_token_2026':
+            return JsonResponse({"error": "Unauthorized access"}, status=401)
         try:
             data = json.loads(request.body)
             device_id = data.get('device_id')
