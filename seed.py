@@ -91,6 +91,51 @@ def seed_db():
         {"id": 12, "tag": "PRJ-001", "name": "Epson Smart Projector", "serial_number": "EPS92810", "categoryId": 3, "status": "AVAILABLE", "location": "Boardroom Alpha", "is_shared": True, "attributes": {"capacity": 2000}}
     ]
     
+    statuses = [Asset.AVAILABLE, Asset.ALLOCATED, Asset.RESERVED, Asset.UNDER_MAINTENANCE, Asset.LOST, Asset.RETIRED, Asset.DISPOSED]
+    categories_list = [
+        {"cat_id": 1, "prefix": "LAP", "names": ["MacBook Pro 14", "ThinkPad X1 Carbon", "HP EliteBook 830", "Dell XPS 13", "Lenovo Yoga 9i"]},
+        {"cat_id": 2, "prefix": "SRV", "names": ["Dell PowerEdge R640", "Cisco UCS C240", "Supermicro FatTwin", "HP ProLiant DL380"]},
+        {"cat_id": 3, "prefix": "RM", "names": ["Meeting Room 101", "Huddle Room 202", "Focus Room 104", "Training Room C"]},
+        {"cat_id": 4, "prefix": "NET", "names": ["Aruba Access Point 303", "Palo Alto PA-3220", "Fortinet FortiGate 60F", "Cisco Catalyst 9300"]},
+        {"cat_id": 5, "prefix": "FURN", "names": ["Steelcase Gesture Chair", "Task Chair Basic", "Whiteboard Mobile", "Executive Desk Oak"]}
+    ]
+    
+    for i in range(13, 60):
+        cat_info = categories_list[(i % len(categories_list))]
+        cat_id = cat_info["cat_id"]
+        prefix = cat_info["prefix"]
+        name_template = cat_info["names"][(i % len(cat_info["names"]))]
+        name = f"{name_template} #{i}"
+        tag = f"{prefix}-{i:03d}"
+        serial = f"SN-{cat_id}{prefix}{i:05d}"
+        status = statuses[(i % len(statuses))]
+        location = f"Floor {((i % 4) + 1)} - Zone {chr(65 + (i % 3))}"
+        is_shared = (cat_id in [3, 4])
+        
+        attrs = {}
+        if cat_id == 1:
+            attrs = {"ram": "16GB", "storage": "512GB SSD"}
+        elif cat_id == 2:
+            attrs = {"cores": 16, "memory": "64GB"}
+        elif cat_id == 3:
+            attrs = {"capacity": 8}
+        elif cat_id == 4:
+            attrs = {"ports": 12}
+        elif cat_id == 5:
+            attrs = {"type": "Office Fixture"}
+            
+        assets_data.append({
+            "id": i,
+            "tag": tag,
+            "name": name,
+            "serial_number": serial,
+            "categoryId": cat_id,
+            "status": status,
+            "location": location,
+            "is_shared": is_shared,
+            "attributes": attrs
+        })
+        
     asset_map = {}
     for ad in assets_data:
         asset, created = Asset.objects.get_or_create(
@@ -115,6 +160,20 @@ def seed_db():
         {"id": 2, "assetId": 6, "userId": 5, "checkedOutAt": "2026-07-05T10:00:00Z", "expectedReturnDate": "2026-07-25", "actualReturnDate": None}
     ]
     
+    alloc_id = 3
+    for ad in assets_data:
+        if ad["status"] == "ALLOCATED" and ad["id"] not in [1, 6]:
+            user_id = (ad["id"] % 3) + 3
+            allocations_data.append({
+                "id": alloc_id,
+                "assetId": ad["id"],
+                "userId": user_id,
+                "checkedOutAt": "2026-07-10T09:00:00Z",
+                "expectedReturnDate": "2026-07-30",
+                "actualReturnDate": None
+            })
+            alloc_id += 1
+            
     for ald in allocations_data:
         checked_out = datetime.fromisoformat(ald["checkedOutAt"].replace('Z', '+00:00'))
         expected = datetime.strptime(ald["expectedReturnDate"], "%Y-%m-%d").date() if ald["expectedReturnDate"] else None
