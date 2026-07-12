@@ -17,15 +17,12 @@ class CustomUserCreationForm(UserCreationForm):
 class AssetRegistrationForm(forms.ModelForm):
     class Meta:
         model = Asset
-        fields = ['tag', 'name', 'serial_number', 'category', 'status', 'location', 'is_shared', 'attributes']
+        fields = ['name', 'serial_number', 'category', 'status', 'location', 'is_shared', 'attributes']
 
 class AssetAllocationForm(forms.ModelForm):
     class Meta:
         model = AssetAllocation
         fields = ['asset', 'user', 'expected_return_date']
-        widgets = {
-            'expected_return_date': forms.DateInput(attrs={'type': 'date'}),
-        }
 
     def clean(self):
         cleaned_data = super().clean()
@@ -38,10 +35,6 @@ class ResourceBookingForm(forms.ModelForm):
     class Meta:
         model = ResourceBooking
         fields = ['resource', 'user', 'start_time', 'end_time']
-        widgets = {
-            'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-            'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-        }
 
     def clean(self):
         cleaned_data = super().clean()
@@ -54,16 +47,17 @@ class ResourceBookingForm(forms.ModelForm):
             if resource:
                 overlapping = ResourceBooking.objects.filter(
                     resource=resource,
+                    is_cancelled=False,
                     start_time__lt=end_time,
                     end_time__gt=start_time
                 )
                 if self.instance and self.instance.pk:
                     overlapping = overlapping.exclude(pk=self.instance.pk)
                 if overlapping.exists():
-                    raise forms.ValidationError("This time slot overlaps with an existing booking.")
+                    raise forms.ValidationError("This reservation overlaps with an active booking.")
         return cleaned_data
 
 class MaintenanceRequestForm(forms.ModelForm):
     class Meta:
         model = MaintenanceRequest
-        fields = ['asset', 'requested_by', 'description']
+        fields = ['asset', 'requested_by', 'description', 'status']
