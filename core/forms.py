@@ -39,9 +39,19 @@ class AssetAllocationForm(forms.ModelForm):
         return cleaned_data
 
 class ResourceBookingForm(forms.ModelForm):
+    start_time = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'],
+    )
+    end_time = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'],
+    )
+
     class Meta:
         model = ResourceBooking
-        fields = ['resource', 'user', 'start_time', 'end_time']
+        fields = ['resource', 'start_time', 'end_time']
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -1,0 +1,150 @@
+{% extends 'core/base.html' %}
+{% block title %}Maintenance | AssetFlow{% endblock %}
+{% block page_title %}Maintenance Requests{% endblock %}
+
+{% block extra_head %}
+<style>
+    .maint-card { transition: border-color 0.15s; }
+    .maint-card:hover { border-color: rgba(245,158,11,0.4); }
+
+    .status-PENDING             { background: rgba(99,102,241,0.15);  color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+    .status-APPROVED            { background: rgba(245,158,11,0.15);  color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+    .status-TECHNICIAN_ASSIGNED { background: rgba(14,165,233,0.15);  color: #7dd3fc; border: 1px solid rgba(14,165,233,0.3); }
+    .status-IN_PROGRESS         { background: rgba(251,191,36,0.15);  color: #fde68a; border: 1px solid rgba(251,191,36,0.3); }
+    .status-RESOLVED            { background: rgba(16,185,129,0.15);  color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+
+    form select, form input, form textarea {
+        width: 100%;
+        background-color: rgb(30, 41, 59);
+        border: 1px solid rgb(51, 65, 85);
+        border-radius: 0.5rem;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+        color: #ffffff;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+    form select:focus, form input:focus, form textarea:focus { border-color: rgb(245,158,11); }
+    form select option { background-color: rgb(15, 23, 42); color: #ffffff; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex gap-6">
+
+    <div class="flex-1 min-w-0">
+
+        <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="bg-slate-800/60 border border-slate-700/50 rounded-xl px-5 py-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Pending</p>
+                <p class="text-2xl font-black text-indigo-400 mt-1">{{ pending_count }}</p>
+            </div>
+            <div class="bg-slate-800/60 border border-slate-700/50 rounded-xl px-5 py-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">In Progress</p>
+                <p class="text-2xl font-black text-amber-400 mt-1">{{ in_progress_count }}</p>
+            </div>
+            <div class="bg-slate-800/60 border border-slate-700/50 rounded-xl px-5 py-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Resolved</p>
+                <p class="text-2xl font-black text-emerald-400 mt-1">{{ resolved_count }}</p>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+        {% for req in maintenance_requests %}
+        <div class="maint-card bg-slate-800/60 border border-slate-700/40 rounded-xl p-5">
+            <div class="flex items-start gap-4">
+                <div class="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <p class="text-sm font-bold text-white">{{ req.asset.name }}</p>
+                        <span class="text-[9px] font-black px-2 py-0.5 rounded-full status-badge status-{{ req.status }}">{{ req.get_status_display }}</span>
+                        <span class="text-[9px] text-slate-500 font-mono">{{ req.asset.tag }}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-0.5">
+                        Requested by <span class="text-slate-200 font-semibold">{{ req.requested_by.get_full_name|default:req.requested_by.username }}</span>
+                        &mdash; {{ req.created_at|date:"M d, Y H:i" }}
+                        {% if req.resolved_at %}&mdash; Resolved {{ req.resolved_at|date:"M d, Y" }}{% endif %}
+                    </p>
+                    <p class="text-xs text-slate-300 mt-2 leading-relaxed">{{ req.description }}</p>
+                </div>
+
+                {% if request.user.role == 'ADMIN' or request.user.role == 'ASSET_MANAGER' %}
+                <div class="flex flex-col gap-1.5 flex-shrink-0">
+                    {% if req.status == 'PENDING' %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="approve">
+                        <input type="hidden" name="pk" value="{{ req.pk }}">
+                        <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:opacity-80 transition-opacity">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            Approve
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if req.status != 'RESOLVED' and req.status != 'PENDING' %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="resolve">
+                        <input type="hidden" name="pk" value="{{ req.pk }}">
+                        <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:opacity-80 transition-opacity">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Resolve
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if req.status == 'RESOLVED' %}
+                    <span class="inline-flex items-center gap-1 text-[9px] font-black text-emerald-400 px-2 py-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        Completed
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-20 text-slate-500 text-sm">No maintenance requests found.</div>
+        {% endfor %}
+        </div>
+    </div>
+
+    <div class="w-72 flex-shrink-0">
+        <div class="bg-slate-800/60 border border-amber-500/20 rounded-xl p-5 sticky top-0">
+            <p class="text-xs font-black text-amber-400 uppercase tracking-widest mb-4">New Request</p>
+            <form method="post" class="space-y-3">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Asset</label>
+                    <select name="asset" required>
+                        <option value="">— Select Asset —</option>
+                        {% for a in available_assets %}
+                        <option value="{{ a.pk }}">{{ a.name }} ({{ a.tag }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Requested By</label>
+                    <select name="requested_by" required>
+                        <option value="{{ request.user.pk }}" selected>{{ request.user.get_full_name|default:request.user.username }} (me)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Description</label>
+                    <textarea name="description" rows="4" required placeholder="Describe the issue…"></textarea>
+                </div>
+                <button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-black rounded-lg transition-colors">
+                    Submit Request
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

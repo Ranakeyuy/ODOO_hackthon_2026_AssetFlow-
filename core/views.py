@@ -328,6 +328,58 @@ class SystemLogListView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
 
+class MaintenanceView(LoginRequiredMixin, View):
+    template_name = 'core/maintenance.html'
+
+    def _get_context(self, form=None):
+        requests_qs = MaintenanceRequest.objects.select_related('asset', 'requested_by').order_by('-created_at')
+        return {
+            'maintenance_requests': requests_qs,
+            'form': form or MaintenanceRequestForm(),
+            'available_assets': Asset.objects.filter(status__in=[Asset.AVAILABLE, Asset.ALLOCATED]),
+            'MaintenanceRequest': MaintenanceRequest,
+            'pending_count': requests_qs.filter(status=MaintenanceRequest.PENDING).count(),
+            'in_progress_count': requests_qs.filter(status__in=[
+                MaintenanceRequest.APPROVED,
+                MaintenanceRequest.TECHNICIAN_ASSIGNED,
+                MaintenanceRequest.IN_PROGRESS,
+            ]).count(),
+            'resolved_count': requests_qs.filter(status=MaintenanceRequest.RESOLVED).count(),
+        }
+
+    def get(self, request):
+        return render(request, self.template_name, self._get_context())
+
+    def post(self, request):
+        action = request.POST.get('action')
+
+        if action == 'approve':
+            if request.user.role not in [User.ADMIN, User.ASSET_MANAGER]:
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden('Permission denied.')
+            pk = request.POST.get('pk')
+            maint = get_object_or_404(MaintenanceRequest, pk=pk)
+            maint.status = MaintenanceRequest.APPROVED
+            maint.save()
+            return redirect('maintenance')
+
+        if action == 'resolve':
+            if request.user.role not in [User.ADMIN, User.ASSET_MANAGER]:
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden('Permission denied.')
+            pk = request.POST.get('pk')
+            maint = get_object_or_404(MaintenanceRequest, pk=pk)
+            maint.status = MaintenanceRequest.RESOLVED
+            maint.save()
+            return redirect('maintenance')
+
+        form = MaintenanceRequestForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('maintenance')
+        return render(request, self.template_name, self._get_context(form))
+
+
 class UserManagementView(LoginRequiredMixin, View):
     template_name = 'core/user_management.html'
 
@@ -338,6 +390,7 @@ class UserManagementView(LoginRequiredMixin, View):
         User.ASSET_MANAGER: 'Asset Manager',
         User.ADMIN: 'Admin',
     }
+
 
     def _require_admin(self, request):
         return request.user.role == User.ADMIN
