@@ -84,6 +84,8 @@ class Asset(models.Model):
     )
     location = models.CharField(max_length=200, blank=True)
     is_shared = models.BooleanField(default=False)
+    acquisition_date = models.DateField(default=timezone.now)
+    cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     attributes = models.JSONField(default=dict, blank=True)
 
     def save(self, *args, **kwargs):
@@ -106,16 +108,8 @@ class Asset(models.Model):
             if not is_new and old_status != self.status:
                 SystemLog.objects.create(
                     target_asset=self,
-<<<<<<< Updated upstream
                     action_type="STATE_CHANGE",
                     action=f"Asset {self.tag} status shifted from {old_status} to {self.status}."
-=======
-                    action_type='STATE_CHANGE',
-                    action=( # Corrected variable name from original_status to self._original_status
-                        f"Asset '{self.tag}' status changed from "
-                        f"'{self._original_status}' to '{self.status}'."
-                    ),
->>>>>>> Stashed changes
                 )
 
     def __str__(self):
@@ -311,31 +305,13 @@ class MaintenanceRequest(models.Model):
         default=PENDING
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
 
-    _original_status = None # To store the original status before save
+    _original_status = None
 
     def save(self, *args, **kwargs):
-<<<<<<< Updated upstream
-        is_new = self._state.adding
-        old_status = None
-        if not is_new:
-            try:
-                old_status = MaintenanceRequest.objects.get(pk=self.pk).status
-            except MaintenanceRequest.DoesNotExist:
-                pass
-        
         with transaction.atomic():
-            super().save(*args, **kwargs)
-            
-            if self.status == self.APPROVED and old_status != self.APPROVED:
-                self.asset.status = Asset.UNDER_MAINTENANCE
-                self.asset.save()
-            elif self.status == self.RESOLVED and old_status != self.RESOLVED:
-                self.asset.status = Asset.AVAILABLE
-                self.asset.save()
-=======
-        with transaction.atomic():
-            if self.pk: # Only fetch old status if it's an existing object
+            if self.pk:
                 self._original_status = MaintenanceRequest.objects.get(pk=self.pk).status
             if self.status == self.RESOLVED and self.resolved_at is None:
                 self.resolved_at = timezone.now()
@@ -362,8 +338,6 @@ class MaintenanceRequest(models.Model):
                         f"Status restored to Available on {self.resolved_at.date()}."
                     ),
                 )
-
->>>>>>> Stashed changes
 
 class AuditCycle(models.Model):
     title = models.CharField(max_length=200)

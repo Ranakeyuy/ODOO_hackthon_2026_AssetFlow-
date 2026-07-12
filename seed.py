@@ -178,17 +178,11 @@ def seed_db():
         checked_out = datetime.fromisoformat(ald["checkedOutAt"].replace('Z', '+00:00'))
         expected = datetime.strptime(ald["expectedReturnDate"], "%Y-%m-%d").date() if ald["expectedReturnDate"] else None
         
-<<<<<<< Updated upstream
         AssetAllocation.objects.get_or_create(
-            id=ald["id"],
+            asset=asset_map[ald["assetId"]],
+            user=user_map[ald["userId"]],
+            checked_out_at=checked_out,
             defaults={
-=======
-        alloc, created = AssetAllocation.objects.get_or_create(
-            defaults={ # Removed explicit ID assignment
->>>>>>> Stashed changes
-                "asset": asset_map[ald["assetId"]],
-                "user": user_map[ald["userId"]],
-                "checked_out_at": checked_out,
                 "expected_return_date": expected,
                 "actual_return_date": None
             }
@@ -201,19 +195,11 @@ def seed_db():
     for bd in bookings_data:
         start = datetime.fromisoformat(bd["startTime"])
         end = datetime.fromisoformat(bd["endTime"])
-<<<<<<< Updated upstream
         ResourceBooking.objects.get_or_create(
-            id=bd["id"],
-            defaults={
-=======
-        booking, created = ResourceBooking.objects.get_or_create(
-            defaults={ # Removed explicit ID assignment
->>>>>>> Stashed changes
-                "resource": asset_map[bd["resourceId"]],
-                "user": user_map[bd["userId"]],
-                "start_time": timezone.make_aware(start),
-                "end_time": timezone.make_aware(end)
-            }
+            resource=asset_map[bd["resourceId"]],
+            user=user_map[bd["userId"]],
+            start_time=timezone.make_aware(start),
+            end_time=timezone.make_aware(end)
         )
 
     transfers_data = [
@@ -221,20 +207,14 @@ def seed_db():
     ]
     for td in transfers_data:
         created_at = datetime.fromisoformat(td["createdAt"].replace('Z', '+00:00'))
-<<<<<<< Updated upstream
         TransferRequest.objects.get_or_create(
-            id=td["id"],
+            asset=asset_map[td["assetId"]],
+            from_user=user_map[td["fromUserId"]],
+            to_user=user_map[td["toUserId"]],
+            requested_by=user_map[td["requestedById"]],
+            created_at=created_at,
             defaults={
-=======
-        transfer, created = TransferRequest.objects.get_or_create(
-            defaults={ # Removed explicit ID assignment
->>>>>>> Stashed changes
-                "asset": asset_map[td["assetId"]],
-                "from_user": user_map[td["fromUserId"]],
-                "to_user": user_map[td["toUserId"]],
-                "requested_by": user_map[td["requestedById"]],
-                "status": TransferRequest.REQUESTED if td["status"] == "PENDING" else td["status"],
-                "created_at": created_at
+                "status": TransferRequest.REQUESTED if td["status"] == "PENDING" else td["status"]
             }
         )
 
@@ -244,17 +224,12 @@ def seed_db():
     for md in maintenance_data:
         created_at = datetime.fromisoformat(md["createdAt"].replace('Z', '+00:00'))
         maint, created = MaintenanceRequest.objects.get_or_create(
-<<<<<<< Updated upstream
-            id=md["id"],
+            asset=asset_map[md["assetId"]],
+            requested_by=user_map[md["requestedById"]],
+            description=md["description"],
+            created_at=created_at,
             defaults={
-=======
-            defaults={ # Removed explicit ID assignment
->>>>>>> Stashed changes
-                "asset": asset_map[md["assetId"]],
-                "requested_by": user_map[md["requestedById"]],
-                "description": md["description"],
-                "status": md["status"],
-                "created_at": created_at
+                "status": md["status"]
             }
         )
         if not created:
