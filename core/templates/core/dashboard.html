@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard | AssetFlow</title>
+    <link rel="stylesheet" href="{% static 'core/style.css' %}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h2>Dashboard Overview</h2>
+        
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <span>Available Assets</span>
+                <h3>{{ available_assets }}</h3>
+            </div>
+            <div class="kpi-card">
+                <span>Allocated Assets</span>
+                <h3>{{ allocated_assets }}</h3>
+            </div>
+            <div class="kpi-card">
+                <span>Active Bookings</span>
+                <h3>{{ active_bookings }}</h3>
+            </div>
+            <div class="kpi-card">
+                <span>Pending Transfers</span>
+                <h3>{{ pending_transfers }}</h3>
+            </div>
+        </div>
+
+        <div class="alert-box">
+            <h3>Overdue Returns Alert</h3>
+            <ul>
+                {% for o in overdue_returns %}
+                    <li>
+                        <strong>{{ o.asset.name }}</strong> (Tag: {{ o.asset.tag }}) <br>
+                        Borrowed by: {{ o.user.get_full_name|default:o.user.username }} <br>
+                        Expected Return Date: <span style="color: #b91c1c; font-weight: 700;">{{ o.expected_return_date }}</span>
+                    </li>
+                {% empty %}
+                    <li style="background: none; border: none; padding: 0; color: #991b1b;">No overdue assets to report.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <h3 style="margin-top: 3rem;">Operations Hub Navigation</h3>
+        <div style="display: flex; gap: 1.5rem; margin-top: 1rem;">
+            <a href="{% url 'asset_directory' %}" style="display: inline-block; padding: 0.75rem 1.5rem; background: #e2e8f0; border-radius: 0.75rem; color: #0f172a;">Asset Directory</a>
+            <a href="{% url 'booking_calendar' %}" style="display: inline-block; padding: 0.75rem 1.5rem; background: #e2e8f0; border-radius: 0.75rem; color: #0f172a;">Booking Calendar</a>
+        </div>
+    </div>
+</body>
+</html>

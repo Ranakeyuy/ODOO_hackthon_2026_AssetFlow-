@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Booking Calendar | AssetFlow</title>
+    <link rel="stylesheet" href="{% static 'core/style.css' %}">
+</head>
+<body>
+    <div class="dashboard-container" style="max-width: 900px;">
+        <h2>Booking Calendar</h2>
+
+        <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 2.5rem; align-items: start;">
+            <div>
+                <h3>Reserve a Slot</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit">Book Resource</button>
+                </form>
+            </div>
+            <div>
+                <h3>Active Schedules</h3>
+                <ul>
+                    {% for b in bookings %}
+                        <li>
+                            <strong>{{ b.resource.name }}</strong> (Tag: {{ b.resource.tag }}) <br>
+                            Reserved by: <span style="font-weight: 600;">{{ b.user.username }}</span> <br>
+                            Time: <span style="font-family: monospace; font-size: 0.75rem; color: #4f46e5;">{{ b.start_time }} to {{ b.end_time }}</span>
+                        </li>
+                    {% empty %}
+                        <li>No active bookings scheduled.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem; border-t: 1px solid #e2e8f0; padding-top: 1.5rem;">
+            <a href="{% url 'dashboard' %}">&larr; Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
