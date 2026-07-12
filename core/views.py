@@ -6,31 +6,32 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.db.models import Q
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import json
 from core.models import (
     User, Asset, AssetAllocation, ResourceBooking,
     TransferRequest, MaintenanceRequest, AssetCategory,
+    IoTDevice, IoTAlert
 )
 from core.forms import (
     CustomUserCreationForm, AssetRegistrationForm,
-    ResourceBookingForm, MaintenanceRequestForm,
+    ResourceBookingForm, MaintenanceRequestForm, IoTDeviceForm
 )
-
 
 class IsAdminOrManagerMixin(UserPassesTestMixin):
     def test_func(self):
         return self.request.user.role in [User.ADMIN, User.ASSET_MANAGER]
 
-
 class UserLoginView(LoginView):
     template_name = 'core/login.html'
     redirect_authenticated_user = True
-
 
 class UserRegisterView(CreateView):
     form_class = CustomUserCreationForm
     template_name = 'core/register.html'
     success_url = reverse_lazy('login')
-
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'core/dashboard.html'
@@ -57,13 +58,15 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 MaintenanceRequest.IN_PROGRESS,
             ],
         ).count()
+        
         context['overdue_returns'] = AssetAllocation.objects.filter(
             actual_return_date__isnull=True,
             expected_return_date__lt=today,
         ).select_related('asset', 'user')
+        context['iot_devices_count'] = IoTDevice.objects.count()
+        context['active_alerts_count'] = IoTAlert.objects.filter(is_resolved=False).count()
 
         return context
-
 
 class AssetDirectoryView(LoginRequiredMixin, View):
     template_name = 'core/asset_directory.html'
@@ -119,7 +122,6 @@ class AssetDirectoryView(LoginRequiredMixin, View):
         }
         return render(request, self.template_name, context)
 
-
 class BookingCalendarView(LoginRequiredMixin, View):
     template_name = 'core/booking_calendar.html'
 
@@ -144,20 +146,17 @@ class BookingCalendarView(LoginRequiredMixin, View):
             return redirect('booking_calendar')
         return render(request, self.template_name, self.get_context(form))
 
-
 class ApproveTransferView(LoginRequiredMixin, IsAdminOrManagerMixin, View):
     def post(self, request, pk):
         transfer = get_object_or_404(TransferRequest, pk=pk)
         transfer.approve(approved_by=request.user)
         return redirect('dashboard')
 
-
 class RejectTransferView(LoginRequiredMixin, IsAdminOrManagerMixin, View):
     def post(self, request, pk):
         transfer = get_object_or_404(TransferRequest, pk=pk)
         transfer.reject(rejected_by=request.user)
         return redirect('dashboard')
-
 
 class ApproveMaintenanceView(LoginRequiredMixin, IsAdminOrManagerMixin, View):
     def post(self, request, pk):
@@ -166,14 +165,12 @@ class ApproveMaintenanceView(LoginRequiredMixin, IsAdminOrManagerMixin, View):
         maintenance.save()
         return redirect('dashboard')
 
-
 class ResolveMaintenanceView(LoginRequiredMixin, IsAdminOrManagerMixin, View):
     def post(self, request, pk):
         maintenance = get_object_or_404(MaintenanceRequest, pk=pk)
         maintenance.status = MaintenanceRequest.RESOLVED
         maintenance.save()
         return redirect('dashboard')
-
 
 class UserProfileView(LoginRequiredMixin, TemplateView):
     template_name = 'core/profile.html'
@@ -187,3 +184,20 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
             user=self.request.user, is_cancelled=False, end_time__gt=timezone.now()
         ).select_related('resource')
         return context
+
+@method_decorator(csrf_exempt, name='dispatch')
+class IoTTelemetryReceiveView(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            device_id = data.get('device_id')
+            telemetry_data = data.get('telemetry')
+            if not device_id or not telemetry_data:
+                return JsonResponse({"error": "Missing device_id or telemetry data."}, status=400)
+            device = get_object_or_404(IoTDevice, device_id=device_id)
+            device.record_telemetry(telemetry_data)
+            return JsonResponse({"status": "Telemetry recorded successfully."})
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)

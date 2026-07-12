@@ -5,5 +5,5 @@ from django.contrib.auth import views as auth_views # Import Django's built-in a
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
-    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'), # Added logout URL
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 ]

@@ -10,6 +10,7 @@ from core.views import (
     ApproveMaintenanceView,
     ResolveMaintenanceView,
     UserProfileView,
+    IoTTelemetryReceiveView,
 )
 
 urlpatterns = [
@@ -24,4 +25,5 @@ urlpatterns = [
     path('maintenance/<int:pk>/resolve/', ResolveMaintenanceView.as_view(), name='resolve_maintenance'),
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('accounts/profile/', UserProfileView.as_view()),
+    path('api/iot/telemetry/', IoTTelemetryReceiveView.as_view(), name='iot_telemetry_receive'),
 ]
