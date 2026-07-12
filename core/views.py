@@ -34,7 +34,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['available_assets'] = Asset.objects.filter(status=Asset.AVAILABLE).count()
         context['allocated_assets'] = Asset.objects.filter(status=Asset.ALLOCATED).count()
         context['active_bookings'] = ResourceBooking.objects.filter(end_time__gt=now).count()
-        context['pending_transfers'] = TransferRequest.objects.filter(status=TransferRequest.PENDING).count()
+        context['pending_transfers'] = TransferRequest.objects.filter(status=TransferRequest.REQUESTED).count()
         
         context['overdue_returns'] = AssetAllocation.objects.filter(
             actual_return_date__isnull=True,
