@@ -1,4 +1,4 @@
-ti<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -6,15 +6,36 @@ ti<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - AssetFlow</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply custom styles to Django form inputs */
+        form input[type="text"], form input[type="password"] {
+            width: 100%;
+            background-color: rgb(30, 41, 59);
+            border: 1px solid rgb(51, 65, 85);
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            color: #ffffff;
+            outline: none;
+            transition: border-color 0.15s ease-in-out;
+        }
+        form input[type="text"]:focus, form input[type="password"]:focus {
+            border-color: rgb(79, 70, 229);
+        }
+    </style>
 </head>
 
-<body class="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center font-sans">
+<body class="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center font-sans p-4">
 
-    <div class="max-w-md w-full bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl">
-        <h2 class="text-2xl font-bold tracking-tight text-white text-center mb-6">Welcome Back to AssetFlow</h2>
-        <p class="text-sm text-slate-400 text-center mb-8">Please enter your credentials to access your account.</p>
+    <div class="max-w-md w-full bg-slate-800 border border-slate-700/60 rounded-2xl p-8 shadow-2xl">
+        <div class="text-center mb-6">
+            <span class="font-extrabold text-xl tracking-wider text-indigo-400">ASSETFLOW</span>
+            <span class="text-[10px] bg-slate-700 px-2 py-0.5 rounded-full text-slate-300 font-semibold uppercase ml-1.5">ERP</span>
+        </div>
+        <h2 class="text-xl font-bold tracking-tight text-white text-center mb-2">Welcome Back</h2>
+        <p class="text-xs text-slate-400 text-center mb-6">Please enter your credentials to access your account.</p>
 
-        <form method="post" class="space-y-5">
+        <form method="post" class="space-y-4">
             {% csrf_token %}
             {% if form.non_field_errors %}
             <div class="p-3 bg-red-950/40 border border-red-900/50 rounded-xl text-xs text-red-300 font-medium">
@@ -25,8 +46,7 @@ ti<!DOCTYPE html>
             {% endif %}
 
             <div>
-                <label for="{{ form.username.id_for_label }}"
-                    class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Username</label>
+                <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Username</label>
                 {{ form.username }}
                 {% if form.username.errors %}
                 {% for error in form.username.errors %}
@@ -35,8 +55,7 @@ ti<!DOCTYPE html>
                 {% endif %}
             </div>
             <div>
-                <label for="{{ form.password.id_for_label }}"
-                    class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Password</label>
+                <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Password</label>
                 {{ form.password }}
                 {% if form.password.errors %}
                 {% for error in form.password.errors %}
@@ -45,12 +64,61 @@ ti<!DOCTYPE html>
                 {% endif %}
             </div>
             <button type="submit"
-                class="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors">
+                class="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors">
                 Login to Account
             </button>
         </form>
+
+        <!-- Quick Login Demo Users -->
+        <div class="mt-8 border-t border-slate-700/60 pt-6">
+            <p class="text-[10px] font-extrabold uppercase text-slate-500 mb-3 tracking-widest text-center">Demo Accounts (Click to Fill)</p>
+            <div class="grid grid-cols-1 gap-2">
+                <button type="button" onclick="fillCredentials('admin', 'password123')"
+                    class="flex items-center justify-between p-2.5 bg-slate-800/40 hover:bg-slate-700/40 border border-slate-700/60 rounded-xl transition-all text-left">
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Keyur Rana</p>
+                        <p class="text-[9px] text-slate-500 font-mono">user: admin · pass: password123</p>
+                    </div>
+                    <span class="text-[9px] font-extrabold bg-red-950/80 text-red-300 border border-red-900/30 px-2 py-0.5 rounded-full uppercase tracking-wider">Admin</span>
+                </button>
+                <button type="button" onclick="fillCredentials('jdoe', 'password123')"
+                    class="flex items-center justify-between p-2.5 bg-slate-800/40 hover:bg-slate-700/40 border border-slate-700/60 rounded-xl transition-all text-left">
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">John Doe</p>
+                        <p class="text-[9px] text-slate-500 font-mono">user: jdoe · pass: password123</p>
+                    </div>
+                    <span class="text-[9px] font-extrabold bg-indigo-950/80 text-indigo-300 border border-indigo-900/30 px-2 py-0.5 rounded-full uppercase tracking-wider">Manager</span>
+                </button>
+                <button type="button" onclick="fillCredentials('asmith', 'password123')"
+                    class="flex items-center justify-between p-2.5 bg-slate-800/40 hover:bg-slate-700/40 border border-slate-700/60 rounded-xl transition-all text-left">
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Alice Smith</p>
+                        <p class="text-[9px] text-slate-500 font-mono">user: asmith · pass: password123</p>
+                    </div>
+                    <span class="text-[9px] font-extrabold bg-emerald-950/80 text-emerald-300 border border-emerald-900/30 px-2 py-0.5 rounded-full uppercase tracking-wider">Dept Head</span>
+                </button>
+                <button type="button" onclick="fillCredentials('bjones', 'password123')"
+                    class="flex items-center justify-between p-2.5 bg-slate-800/40 hover:bg-slate-700/40 border border-slate-700/60 rounded-xl transition-all text-left">
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Bob Jones</p>
+                        <p class="text-[9px] text-slate-500 font-mono">user: bjones · pass: password123</p>
+                    </div>
+                    <span class="text-[9px] font-extrabold bg-slate-700/80 text-slate-300 border border-slate-600/30 px-2 py-0.5 rounded-full uppercase tracking-wider">Employee</span>
+                </button>
+            </div>
+        </div>
     </div>
 
+    <script>
+        function fillCredentials(username, password) {
+            const usernameInput = document.querySelector('input[name="username"]');
+            const passwordInput = document.querySelector('input[name="password"]');
+            if (usernameInput && passwordInput) {
+                usernameInput.value = username;
+                passwordInput.value = password;
+            }
+        }
+    </script>
 </body>
 
 </html>
