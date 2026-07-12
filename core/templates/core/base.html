@@ -1,41 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AssetFlow Enterprise</title>
+    <title>{% block title %}AssetFlow{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for status badges */
         .status-badge {
             @apply text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wide;
         }
-
         .status-available {
             @apply bg-green-950 text-green-300 border border-green-900/30;
         }
-
         .status-allocated {
             @apply bg-indigo-950 text-indigo-300 border border-indigo-900/30;
         }
-
         .status-reserved {
             @apply bg-blue-950 text-blue-300 border border-blue-900/30;
         }
-
         .status-under-maintenance {
             @apply bg-yellow-950 text-yellow-300 border border-yellow-900/30;
         }
-
         .status-lost {
             @apply bg-red-950 text-red-300 border border-red-900/30;
         }
-
         .status-retired {
             @apply bg-gray-950 text-gray-300 border border-gray-900/30;
         }
-
         .status-disposed {
             @apply bg-purple-950 text-purple-300 border border-purple-900/30;
         }
@@ -43,22 +34,16 @@
     {% block extra_head %}
     {% endblock %}
 </head>
-
 <body class="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
-
-    <header
-        class="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 flex items-center justify-between px-6">
+    <header class="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 flex items-center justify-between px-6">
         <div class="flex items-center gap-3">
             <span class="font-extrabold text-lg tracking-wider text-indigo-400">ASSETFLOW</span>
-            <span
-                class="text-xs bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-400 font-semibold uppercase">Enterprise
-                ERP</span>
+            <span class="text-xs bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-400 font-semibold uppercase">Enterprise ERP</span>
         </div>
         <div class="flex items-center gap-6">
             {% if request.user.is_authenticated %}
             <div class="flex items-center gap-3 border-l border-slate-800 pl-6">
-                <div
-                    class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-extrabold text-xs text-white">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-extrabold text-xs text-white">
                     {% if request.user.first_name and request.user.last_name %}
                     {{ request.user.first_name|first }}{{ request.user.last_name|first }}
                     {% else %}
@@ -77,68 +62,52 @@
                 </form>
             </div>
             {% else %}
-            <a href="{% url 'login' %}"
-                class="text-xs hover:text-indigo-400 ml-2 text-slate-400 font-semibold">Login</a>
-            <a href="{% url 'register' %}"
-                class="text-xs hover:text-indigo-400 ml-2 text-slate-400 font-semibold">Register</a>
+            <a href="{% url 'login' %}" class="text-xs hover:text-indigo-400 ml-2 text-slate-400 font-semibold">Login</a>
+            <a href="{% url 'register' %}" class="text-xs hover:text-indigo-400 ml-2 text-slate-400 font-semibold">Register</a>
             {% endif %}
         </div>
     </header>
-
     <div class="flex-1 flex overflow-hidden">
         {% if request.user.is_authenticated %}
         <aside class="w-64 border-r border-slate-800 bg-slate-900/60 p-4 flex flex-col gap-1.5 shrink-0">
             <p class="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase px-3 mb-2">Main Navigation</p>
             {% url 'dashboard' as dashboard_url %}
             {% url 'asset_directory' as directory_url %}
-            {% url 'asset_allocation' as allocation_url %} {# Placeholder URL #}
             {% url 'booking_calendar' as booking_url %}
-
             {% with request.resolver_match.view_name as current_view_name %}
-            <a href="{{ dashboard_url }}"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'dashboard' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
+            <a href="{{ dashboard_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'dashboard' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 <span>Dashboard</span>
             </a>
-            <a href="{{ directory_url }}"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'asset_directory' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
+            <a href="{{ directory_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'asset_directory' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
                 <span>Asset Directory</span>
             </a>
-            <a href="{{ allocation_url }}"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'asset_allocation' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
+            <a href="{{ directory_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all text-slate-400 hover:bg-slate-800/50 hover:text-slate-200">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
                 <span>Allocate Asset</span>
             </a>
-            <a href="{{ booking_url }}"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'booking_calendar' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
+            <a href="{{ booking_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'booking_calendar' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <span>New Booking</span>
             </a>
             {% endwith %}
         </aside>
         {% endif %}
-
         <main class="flex-1 overflow-y-auto p-8">
             {% block content %}
             {% endblock %}
         </main>
     </div>
-
     {% block extra_scripts %}
     {% endblock %}
 </body>
-
 </html>

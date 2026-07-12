@@ -4,9 +4,7 @@
 {% block page_title %}Asset Directory{% endblock %}
 
 {% block extra_head %}
-<!-- Chart.js CDN for Category Distribution chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- SheetJS CDN for Excel export -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
     .status-badge-AVAILABLE    { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
@@ -23,104 +21,87 @@
 
 {% block content %}
 
-<!-- Statistics Cards Grid -->
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
-        <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Assets</p>
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Total Assets</p>
         <p class="text-2xl font-black text-white" id="stat-total">0</p>
+        <p class="text-[10px] text-slate-500 mt-0.5 font-medium">In database</p>
     </div>
-    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
-        <p class="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Available</p>
-        <p class="text-2xl font-black text-emerald-300" id="stat-available">0</p>
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Available</p>
+        <p class="text-2xl font-black text-emerald-400" id="stat-available">0</p>
+        <p class="text-[10px] text-slate-500 mt-0.5 font-medium">Ready to issue</p>
     </div>
-    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
-        <p class="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider">Allocated</p>
-        <p class="text-2xl font-black text-indigo-300" id="stat-allocated">0</p>
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Allocated</p>
+        <p class="text-2xl font-black text-indigo-400" id="stat-allocated">0</p>
+        <p class="text-[10px] text-slate-500 mt-0.5 font-medium">Currently deployed</p>
     </div>
-    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
-        <p class="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Maintenance</p>
-        <p class="text-2xl font-black text-amber-300" id="stat-maintenance">0</p>
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Maintenance</p>
+        <p class="text-2xl font-black text-amber-400" id="stat-maintenance">0</p>
+        <p class="text-[10px] text-slate-500 mt-0.5 font-medium">Under repair</p>
     </div>
-    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-1.5">
-        <p class="text-[10px] font-semibold text-purple-400 uppercase tracking-wider">Total Valuation</p>
-        <p class="text-2xl font-black text-purple-300" id="stat-valuation">₹0.00</p>
+    <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Total Valuation</p>
+        <p class="text-2xl font-black text-white" id="stat-valuation">₹0</p>
+        <p class="text-[10px] text-slate-500 mt-0.5 font-medium">Combined book cost</p>
     </div>
 </div>
 
 <div class="flex flex-col lg:flex-row gap-6">
-    <!-- Left Column (Filters + Table) -->
     <div class="flex-1 min-w-0 space-y-6">
-        <!-- Filter Form -->
-        <div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden">
-            <form method="get" id="filter-form">
-                <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-0 divide-x divide-slate-700/60">
-                    <div class="px-4 py-3">
-                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Asset Tag</label>
-                        <input type="text" name="tag" value="{{ request.GET.tag }}" placeholder="AF-0001"
-                               class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-                    <div class="px-4 py-3">
-                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Serial Number</label>
-                        <input type="text" name="serial_number" value="{{ request.GET.serial_number }}" placeholder="SN-XXXX"
-                               class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-                    <div class="px-4 py-3">
-                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Category</label>
-                        <select name="category" class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
-                            <option value="">All Categories</option>
-                            {% for cat in categories %}
-                            <option value="{{ cat.pk }}" {% if request.GET.category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="px-4 py-3">
-                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Status</label>
-                        <select name="status" class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
-                            <option value="">All Statuses</option>
-                            <option value="AVAILABLE"         {% if request.GET.status == "AVAILABLE" %}selected{% endif %}>Available</option>
-                            <option value="ALLOCATED"         {% if request.GET.status == "ALLOCATED" %}selected{% endif %}>Allocated</option>
-                            <option value="RESERVED"          {% if request.GET.status == "RESERVED" %}selected{% endif %}>Reserved</option>
-                            <option value="UNDER_MAINTENANCE" {% if request.GET.status == "UNDER_MAINTENANCE" %}selected{% endif %}>Under Maintenance</option>
-                            <option value="LOST"              {% if request.GET.status == "LOST" %}selected{% endif %}>Lost</option>
-                            <option value="RETIRED"           {% if request.GET.status == "RETIRED" %}selected{% endif %}>Retired</option>
-                            <option value="DISPOSED"          {% if request.GET.status == "DISPOSED" %}selected{% endif %}>Disposed</option>
-                        </select>
-                    </div>
-                    <div class="px-4 py-3">
-                        <label class="block text-xs font-medium text-slate-400 mb-1.5">Location</label>
-                        <input type="text" name="location" value="{{ request.GET.location }}" placeholder="Floor, Room..."
-                               class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-                    <div class="px-4 py-3 flex items-end gap-2">
-                        <button type="submit" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
-                            Filter
-                        </button>
-                        <a href="{% url 'asset_directory' %}" class="flex items-center justify-center px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition-colors" title="Clear filters">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </a>
-                    </div>
+        <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5">
+            <form method="get" action="{% url 'asset_directory' %}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Search Query</label>
+                    <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Search by tag, name, serial..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Status</label>
+                    <select name="status" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
+                        <option value="">All Statuses</option>
+                        <option value="AVAILABLE" {% if request.GET.status == 'AVAILABLE' %}selected{% endif %}>Available</option>
+                        <option value="ALLOCATED" {% if request.GET.status == 'ALLOCATED' %}selected{% endif %}>Allocated</option>
+                        <option value="RESERVED" {% if request.GET.status == 'RESERVED' %}selected{% endif %}>Reserved</option>
+                        <option value="UNDER_MAINTENANCE" {% if request.GET.status == 'UNDER_MAINTENANCE' %}selected{% endif %}>Under Maintenance</option>
+                        <option value="LOST" {% if request.GET.status == 'LOST' %}selected{% endif %}>Lost</option>
+                        <option value="RETIRED" {% if request.GET.status == 'RETIRED' %}selected{% endif %}>Retired</option>
+                        <option value="DISPOSED" {% if request.GET.status == 'DISPOSED' %}selected{% endif %}>Disposed</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Category</label>
+                    <select name="category" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.pk }}" {% if request.GET.category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Location</label>
+                    <input type="text" name="location" value="{{ request.GET.location|default:'' }}" placeholder="e.g. Floor 3" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition-colors">
+                </div>
+                <div class="md:col-span-4 flex justify-end gap-2.5 mt-2 border-t border-slate-800 pt-4">
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors">
+                        Apply Filters
+                    </button>
+                    <a href="{% url 'asset_directory' %}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold rounded-lg transition-colors flex items-center justify-center">
+                        Clear
+                    </a>
                 </div>
             </form>
         </div>
 
-        <!-- Table View -->
-        <div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden">
+        <div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden bg-slate-800/40">
             <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-700/60">
                 <div class="flex items-center gap-3">
                     <p class="text-sm font-semibold text-white">Assets</p>
                     <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">{{ object_list|length }}</span>
                 </div>
                 {% if request.user.role in "ADMIN,ASSET_MANAGER" %}
-                <button onclick="document.getElementById('modal-add-asset').classList.remove('hidden')"
-                        class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
+                <button onclick="document.getElementById('modal-add-asset').classList.remove('hidden')" class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
                     Register Asset
                 </button>
                 {% endif %}
@@ -154,24 +135,26 @@
                                 </span>
                             </td>
                             <td class="px-5 py-3.5 text-slate-400">{{ asset.acquisition_date|date:"M d, Y" }}</td>
-                            <td class="px-5 py-3.5">
-                                <button onclick="openDrawer('{{ asset.pk }}')"
-                                        class="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition-all">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                    </svg>
+                            <td class="px-5 py-3.5 flex items-center gap-2">
+                                <button onclick="openDrawer('{{ asset.pk }}')" class="flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition-all">
                                     Details
                                 </button>
+                                {% if asset.status == 'ALLOCATED' and request.user.role in 'ADMIN,ASSET_MANAGER' %}
+                                <form method="post" action="{% url 'asset_directory' %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="return_asset">
+                                    <input type="hidden" name="asset_id" value="{{ asset.pk }}">
+                                    <button type="submit" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors">
+                                        Return
+                                    </button>
+                                </form>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
                             <td colspan="8" class="px-5 py-12 text-center">
-                                <svg class="w-10 h-10 mx-auto mb-3 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                                </svg>
                                 <p class="text-sm text-slate-500 font-medium">No assets match your filters</p>
-                                <p class="text-xs text-slate-600 mt-1">Try adjusting your search criteria</p>
                             </td>
                         </tr>
                         {% endfor %}
@@ -181,31 +164,22 @@
         </div>
     </div>
 
-    <!-- Right Column (Analytics + Exports) -->
     <div class="w-full lg:w-80 shrink-0 space-y-6">
-        <!-- Distribution Chart Card -->
-        <div class="bg-panel border border-slate-700/60 rounded-xl p-5 flex flex-col items-center">
+        <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 flex flex-col items-center">
             <p class="text-xs font-bold text-white uppercase tracking-wider mb-4 self-start">Category Distribution</p>
             <div class="w-full h-48 relative flex items-center justify-center">
                 <canvas id="categoryChart"></canvas>
             </div>
         </div>
 
-        <!-- Export Card -->
-        <div class="bg-panel border border-slate-700/60 rounded-xl p-5 space-y-3">
+        <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 space-y-3">
             <p class="text-xs font-bold text-white uppercase tracking-wider mb-2">Export Asset Data</p>
             <p class="text-[11px] text-slate-400">Download the currently filtered asset list in your preferred format.</p>
             <div class="grid grid-cols-2 gap-2 mt-2">
                 <button onclick="exportData('xlsx')" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
                     EXCEL
                 </button>
                 <button onclick="exportData('json')" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
                     JSON
                 </button>
             </div>
@@ -213,9 +187,8 @@
     </div>
 </div>
 
-<!-- Drawer Detail Overlay -->
 <div id="drawer-backdrop" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onclick="closeDrawer()"></div>
-<div id="asset-drawer" class="drawer-overlay fixed top-0 right-0 h-full w-full max-w-md bg-panel border-l border-slate-700 z-50 flex flex-col shadow-2xl overflow-hidden">
+<div id="asset-drawer" class="drawer-overlay fixed top-0 right-0 h-full w-full max-w-md bg-slate-800 border-l border-slate-700 z-50 flex flex-col shadow-2xl overflow-hidden">
     <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700 flex-shrink-0">
         <div>
             <p class="text-sm font-bold text-white" id="drawer-asset-name">Asset Details</p>
@@ -232,10 +205,10 @@
         <div id="drawer-meta" class="grid grid-cols-2 gap-3"></div>
 
         {% if request.user.role in "ADMIN,ASSET_MANAGER" %}
-        <div class="border-t border-slate-800 pt-4">
+        <div class="border-t border-slate-700 pt-4">
             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Quick Update Status</p>
             <div class="flex gap-2">
-                <select id="drawer-status-select" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
+                <select id="drawer-status-select" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 transition-colors">
                     <option value="AVAILABLE">Available</option>
                     <option value="ALLOCATED">Allocated</option>
                     <option value="RESERVED">Reserved</option>
@@ -252,87 +225,64 @@
         </div>
         {% endif %}
 
-        <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Checkout History</p>
-            <div id="drawer-history" class="space-y-2">
-                <div class="text-xs text-slate-500 text-center py-6">Loading history...</div>
-            </div>
+        <div class="border-t border-slate-700 pt-4">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Recent Checked Out History</p>
+            <div class="space-y-2.5" id="drawer-allocations-list"></div>
         </div>
     </div>
 </div>
 
-{% if selected_asset %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const assetData = {
-            pk: "{{ selected_asset.pk }}",
-            name: "{{ selected_asset.name|escapejs }}",
-            tag: "{{ selected_asset.tag }}",
-            status: "{{ selected_asset.status }}",
-            statusDisplay: "{{ selected_asset.get_status_display }}",
-            category: "{{ selected_asset.category.name|escapejs }}",
-            serial: "{{ selected_asset.serial_number|default:''|escapejs }}",
-            location: "{{ selected_asset.location|default:''|escapejs }}",
-            acquired: "{{ selected_asset.acquisition_date|date:'M d, Y' }}",
-            cost: "{{ selected_asset.cost|default:'' }}",
-            allocations: [
-                {% for alloc in selected_asset.allocations.all %}
-                {
-                    user: "{{ alloc.user.get_full_name|default:alloc.user.username|escapejs }}",
-                    checkedOut: "{{ alloc.checked_out_at|date:'M d, Y' }}",
-                    expectedReturn: "{{ alloc.expected_return_date|default:''|date:'M d, Y' }}",
-                    actualReturn: "{{ alloc.actual_return_date|default:''|date:'M d, Y' }}",
-                    active: {% if alloc.actual_return_date %}false{% else %}true{% endif %}
-                }{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ]
-        };
-        populateDrawer(assetData);
-        openDrawerWithData();
-    });
-</script>
-{% endif %}
-
-<!-- Add Asset Modal -->
-<div id="modal-add-asset" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="document.getElementById('modal-add-asset').classList.add('hidden')"></div>
-    <div class="relative bg-panel border border-slate-700 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden max-h-screen flex flex-col">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700 flex-shrink-0">
+<div id="modal-add-asset" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-700 pb-3">
             <p class="text-sm font-bold text-white">Register New Asset</p>
-            <button onclick="document.getElementById('modal-add-asset').classList.add('hidden')" class="text-slate-400 hover:text-white transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onclick="document.getElementById('modal-add-asset').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
         </div>
-        <div class="overflow-y-auto px-6 py-5">
-            <form method="post">
-                {% csrf_token %}
-                {% if form.non_field_errors %}
-                <div class="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                    {% for error in form.non_field_errors %}
-                    <p class="text-xs text-red-400">{{ error }}</p>
-                    {% endfor %}
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Asset Name</label>
+                {{ form.name }}
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Category</label>
+                    {{ form.category }}
                 </div>
-                {% endif %}
-                <div class="grid grid-cols-2 gap-4">
-                    {% for field in form %}
-                    <div class="{% if field.name == 'name' or field.name == 'serial_number' or field.name == 'location' %}col-span-2{% endif %}">
-                        <label class="block text-xs font-medium text-slate-400 mb-1.5">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                        <p class="text-xs text-red-400 mt-1">{{ field.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Serial Number</label>
+                    {{ form.serial_number }}
                 </div>
-                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700">
-                    <button type="button" onclick="document.getElementById('modal-add-asset').classList.add('hidden')"
-                            class="px-4 py-2 text-xs font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors">Register Asset</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Location</label>
+                    {{ form.location }}
                 </div>
-            </form>
-        </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status</label>
+                    {{ form.status }}
+                </div>
+            </div>
+            <div>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    {{ form.is_shared }}
+                    <span class="text-xs text-slate-300 select-none">Is Shared Resource</span>
+                </label>
+            </div>
+            <div class="flex justify-end gap-2 border-t border-slate-700 pt-4">
+                <button type="button" onclick="document.getElementById('modal-add-asset').classList.add('hidden')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-semibold rounded-lg">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg">
+                    Save Asset
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -344,120 +294,98 @@
         {% for asset in object_list %}
         "{{ asset.pk }}": {
             pk: "{{ asset.pk }}",
-            name: "{{ asset.name|escapejs }}",
             tag: "{{ asset.tag }}",
+            name: "{{ asset.name }}",
+            category: "{{ asset.category.name }}",
+            serial: "{{ asset.serial_number|default:'' }}",
+            location: "{{ asset.location|default:'' }}",
             status: "{{ asset.status }}",
             statusDisplay: "{{ asset.get_status_display }}",
-            category: "{{ asset.category.name|escapejs }}",
-            serial: "{{ asset.serial_number|default:''|escapejs }}",
-            location: "{{ asset.location|default:''|escapejs }}",
-            acquired: "{{ asset.acquisition_date|date:'M d, Y' }}",
-            cost: "{{ asset.cost|default:'' }}",
+            acquired: "{{ asset.acquisition_date|date:'Y-m-d' }}",
+            cost: "{{ asset.cost|default:'0' }}",
+            isShared: {{ asset.is_shared|yesno:"true,false" }},
             allocations: [
                 {% for alloc in asset.allocations.all %}
                 {
-                    user: "{{ alloc.user.get_full_name|default:alloc.user.username|escapejs }}",
-                    checkedOut: "{{ alloc.checked_out_at|date:'M d, Y' }}",
-                    expectedReturn: "{{ alloc.expected_return_date|default:''|date:'M d, Y' }}",
-                    actualReturn: "{{ alloc.actual_return_date|default:''|date:'M d, Y' }}",
-                    active: {% if alloc.actual_return_date %}false{% else %}true{% endif %}
-                }{% if not forloop.last %},{% endif %}
+                    user: "{{ alloc.user.get_full_name|default:alloc.user.username }}",
+                    checked_out: "{{ alloc.checked_out_at|date:'M d, Y' }}",
+                    returned: "{{ alloc.actual_return_date|date:'M d, Y'|default:'Active' }}"
+                },
                 {% endfor %}
             ]
-        }{% if not forloop.last %},{% endif %}
+        },
         {% endfor %}
-    };
-
-    const statusColors = {
-        'AVAILABLE': 'text-emerald-400',
-        'ALLOCATED': 'text-indigo-400',
-        'RESERVED': 'text-sky-400',
-        'UNDER_MAINTENANCE': 'text-amber-400',
-        'LOST': 'text-red-400',
-        'RETIRED': 'text-slate-400',
-        'DISPOSED': 'text-slate-500',
     };
 
     let currentDrawerAssetId = null;
 
-    function populateDrawer(data) {
-        currentDrawerAssetId = data.pk;
-        document.getElementById('drawer-asset-name').textContent = data.name;
-        document.getElementById('drawer-asset-tag').textContent = data.tag;
-
-        const statusSelect = document.getElementById('drawer-status-select');
-        if (statusSelect) {
-            statusSelect.value = data.status;
-        }
-
+    function populateDrawer(asset) {
+        currentDrawerAssetId = asset.pk;
+        document.getElementById('drawer-asset-name').textContent = asset.name;
+        document.getElementById('drawer-asset-tag').textContent = asset.tag;
+        
         const metaEl = document.getElementById('drawer-meta');
-        const colorClass = statusColors[data.status] || 'text-slate-300';
         metaEl.innerHTML = `
-            <div class="bg-slate-800/60 rounded-lg p-3">
-                <p class="text-xs text-slate-500 mb-1">Status</p>
-                <p class="text-xs font-bold ${colorClass}" id="drawer-meta-status-display">${data.statusDisplay}</p>
+            <div class="bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/40">
+                <p class="text-[9px] text-slate-500 uppercase font-bold">Category</p>
+                <p class="text-xs font-semibold text-slate-200">${asset.category}</p>
             </div>
-            <div class="bg-slate-800/60 rounded-lg p-3">
-                <p class="text-xs text-slate-500 mb-1">Category</p>
-                <p class="text-xs font-semibold text-white">${data.category}</p>
+            <div class="bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/40">
+                <p class="text-[9px] text-slate-500 uppercase font-bold">Serial Number</p>
+                <p class="text-xs font-mono font-medium text-slate-200">${asset.serial || '—'}</p>
             </div>
-            <div class="bg-slate-800/60 rounded-lg p-3">
-                <p class="text-xs text-slate-500 mb-1">Serial No.</p>
-                <p class="text-xs font-mono text-slate-300">${data.serial || '—'}</p>
+            <div class="bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/40">
+                <p class="text-[9px] text-slate-500 uppercase font-bold">Location</p>
+                <p class="text-xs font-medium text-slate-200">${asset.location || '—'}</p>
             </div>
-            <div class="bg-slate-800/60 rounded-lg p-3">
-                <p class="text-xs text-slate-500 mb-1">Location</p>
-                <p class="text-xs font-semibold text-white">${data.location || '—'}</p>
-            </div>
-            <div class="bg-slate-800/60 rounded-lg p-3">
-                <p class="text-xs text-slate-500 mb-1">Acquired</p>
-                <p class="text-xs font-semibold text-white">${data.acquired}</p>
-            </div>
-            <div class="bg-slate-800/60 rounded-lg p-3">
-                <p class="text-xs text-slate-500 mb-1">Cost</p>
-                <p class="text-xs font-semibold text-white">${data.cost ? '₹' + parseFloat(data.cost).toLocaleString('en-IN') : '—'}</p>
+            <div class="bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/40">
+                <p class="text-[9px] text-slate-500 uppercase font-bold">Current Status</p>
+                <span class="status-badge-${asset.status} inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold mt-0.5">${asset.statusDisplay}</span>
             </div>
         `;
 
-        const histEl = document.getElementById('drawer-history');
-        if (data.allocations && data.allocations.length > 0) {
-            histEl.innerHTML = data.allocations.map(a => `
-                <div class="flex items-start gap-3 p-3 rounded-lg ${a.active ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-slate-800/40'}">
-                    <div class="w-6 h-6 rounded-full ${a.active ? 'bg-indigo-500/20' : 'bg-slate-700'} flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <svg class="w-3 h-3 ${a.active ? 'text-indigo-400' : 'text-slate-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center justify-between gap-2">
-                            <p class="text-xs font-semibold text-white truncate">${a.user}</p>
-                            ${a.active ? '<span class="text-xs bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded font-medium flex-shrink-0">Active</span>' : '<span class="text-xs text-slate-500 flex-shrink-0">Returned</span>'}
-                        </div>
-                        <p class="text-xs text-slate-400 mt-0.5">Out: ${a.checkedOut}${a.actualReturn ? ' &nbsp;·&nbsp; In: ' + a.actualReturn : a.expectedReturn ? ' &nbsp;·&nbsp; Due: ' + a.expectedReturn : ''}</p>
-                    </div>
-                </div>
-            `).join('');
+        const selectEl = document.getElementById('drawer-status-select');
+        if (selectEl) {
+            selectEl.value = asset.status;
+        }
+
+        const allocListEl = document.getElementById('drawer-allocations-list');
+        allocListEl.innerHTML = '';
+        if (asset.allocations.length === 0) {
+            allocListEl.innerHTML = '<p class="text-xs text-slate-500 italic py-2">No checkout history.</p>';
         } else {
-            histEl.innerHTML = '<div class="text-xs text-slate-500 text-center py-6">No checkout history recorded</div>';
+            asset.allocations.forEach(alloc => {
+                const badgeClass = alloc.returned === 'Active' ? 'bg-indigo-950 text-indigo-300 border-indigo-900' : 'bg-slate-700 text-slate-400 border-slate-650';
+                allocListEl.innerHTML += `
+                    <div class="flex items-center justify-between p-2.5 bg-slate-900/35 border border-slate-800 rounded-lg">
+                        <div>
+                            <p class="text-xs font-bold text-slate-300">${alloc.user}</p>
+                            <p class="text-[9px] text-slate-500 mt-0.5">Issued: ${alloc.checked_out}</p>
+                        </div>
+                        <span class="text-[9px] font-extrabold px-2 py-0.5 border rounded-full uppercase tracking-wider ${badgeClass}">${alloc.returned}</span>
+                    </div>
+                `;
+            });
         }
     }
 
     function updateAssetStatus() {
-        if (!currentDrawerAssetId) return;
-        const status = document.getElementById('drawer-status-select').value;
+        const selectEl = document.getElementById('drawer-status-select');
+        if (!selectEl || !currentDrawerAssetId) return;
+        const newStatus = selectEl.value;
         const msgEl = document.getElementById('drawer-status-message');
         
-        msgEl.className = "text-[10px] mt-1.5 text-slate-400";
-        msgEl.textContent = "Updating...";
+        msgEl.className = "text-[10px] mt-1.5 text-indigo-400 font-medium";
+        msgEl.textContent = "Updating status...";
         msgEl.classList.remove('hidden');
 
         const formData = new FormData();
         formData.append('action', 'update_status');
         formData.append('asset_id', currentDrawerAssetId);
-        formData.append('status', status);
+        formData.append('status', newStatus);
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-        fetch('{% url "asset_directory" %}', {
+        fetch("{% url 'asset_directory' %}", {
             method: 'POST',
             body: formData,
             headers: {
@@ -470,13 +398,11 @@
                 msgEl.className = "text-[10px] mt-1.5 text-emerald-400 font-medium";
                 msgEl.textContent = "Status updated successfully!";
                 
-                // Update local asset index
                 if (assetIndex[currentDrawerAssetId]) {
                     assetIndex[currentDrawerAssetId].status = data.status_code;
                     assetIndex[currentDrawerAssetId].statusDisplay = data.new_status;
                 }
                 
-                // Reload after short delay to show success indicator
                 setTimeout(() => {
                     window.location.reload();
                 }, 800);
@@ -508,7 +434,6 @@
         setTimeout(() => document.getElementById('drawer-backdrop').classList.add('hidden'), 300);
     }
 
-    // Export currently loaded assets into Excel (xlsx) or JSON
     function exportData(format) {
         const assetsList = Object.values(assetIndex).map(asset => ({
             'Tag': asset.tag,
@@ -538,7 +463,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Calculate statistics from local index
         let total = 0;
         let available = 0;
         let allocated = 0;
@@ -553,10 +477,7 @@
             else if (asset.status === 'ALLOCATED') allocated++;
             else if (asset.status === 'UNDER_MAINTENANCE') maintenance++;
             
-            const costVal = parseFloat(asset.cost);
-            if (!isNaN(costVal)) {
-                valuation += costVal;
-            }
+            valuation += parseFloat(asset.cost || 0);
 
             categoryCounts[asset.category] = (categoryCounts[asset.category] || 0) + 1;
         }
@@ -565,33 +486,27 @@
         document.getElementById('stat-available').textContent = available;
         document.getElementById('stat-allocated').textContent = allocated;
         document.getElementById('stat-maintenance').textContent = maintenance;
-        document.getElementById('stat-valuation').textContent = '₹' + valuation.toLocaleString('en-IN', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
+        document.getElementById('stat-valuation').textContent = "₹" + valuation.toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
-        // Initialize Category Distribution Chart using Chart.js
-        const chartCanvas = document.getElementById('categoryChart');
-        if (chartCanvas) {
-            const ctx = chartCanvas.getContext('2d');
-            const categories = Object.keys(categoryCounts);
-            const counts = Object.values(categoryCounts);
-
+        const ctx = document.getElementById('categoryChart');
+        if (ctx) {
+            const labels = Object.keys(categoryCounts);
+            const data = Object.values(categoryCounts);
             new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: categories,
+                    labels: labels,
                     datasets: [{
-                        data: counts,
+                        data: data,
                         backgroundColor: [
-                            'rgba(99, 102, 241, 0.75)',  // Indigo
-                            'rgba(16, 185, 129, 0.75)',  // Emerald
-                            'rgba(14, 165, 233, 0.75)',  // Sky
-                            'rgba(245, 158, 11, 0.75)',  // Amber
-                            'rgba(168, 85, 247, 0.75)'   // Purple
+                            '#4f46e5',
+                            '#06b6d4',
+                            '#10b981',
+                            '#f59e0b',
+                            '#ec4899',
+                            '#8b5cf6'
                         ],
-                        borderColor: '#1e293b',
-                        borderWidth: 2
+                        borderWidth: 0
                     }]
                 },
                 options: {
@@ -604,21 +519,18 @@
                             labels: {
                                 color: '#94a3b8',
                                 font: {
-                                    size: 9
+                                    size: 10,
+                                    weight: 'bold'
                                 },
-                                boxWidth: 8
+                                boxWidth: 12,
+                                padding: 12
                             }
                         }
-                    }
+                    },
+                    cutout: '70%'
                 }
             });
         }
     });
-
-    {% if form.errors %}
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('modal-add-asset').classList.remove('hidden');
-    });
-    {% endif %}
 </script>
 {% endblock %}

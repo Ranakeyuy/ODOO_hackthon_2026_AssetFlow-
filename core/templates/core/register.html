@@ -1,38 +1,37 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register | AssetFlow</title>
+    <title>Register - AssetFlow</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>body { background-color: #0f172a; font-family: 'Inter', sans-serif; }</style>
+    <style>
+        form input[type="text"], form input[type="email"], form input[type="password"] {
+            width: 100%;
+            background-color: rgb(30, 41, 59);
+            border: 1px solid rgb(51, 65, 85);
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            color: #ffffff;
+            outline: none;
+            transition: border-color 0.15s ease-in-out;
+        }
+        form input[type="text"]:focus, form input[type="email"]:focus, form input[type="password"]:focus {
+            border-color: rgb(79, 70, 229);
+        }
+    </style>
 </head>
-<body class="min-h-full flex items-center justify-center p-4 antialiased py-10">
-
-<div class="w-full max-w-sm">
-    <div class="flex items-center justify-center gap-3 mb-8">
-        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
-            </svg>
+<body class="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center font-sans p-4 py-10">
+    <div class="max-w-md w-full bg-slate-800 border border-slate-700/60 rounded-2xl p-8 shadow-2xl">
+        <div class="text-center mb-6">
+            <span class="font-extrabold text-xl tracking-wider text-indigo-400">ASSETFLOW</span>
+            <span class="text-[10px] bg-slate-700 px-2 py-0.5 rounded-full text-slate-300 font-semibold uppercase ml-1.5">ERP</span>
         </div>
-        <div>
-            <p class="text-lg font-bold text-white tracking-tight">AssetFlow</p>
-            <p class="text-xs text-slate-400">Enterprise Asset Management</p>
-        </div>
-    </div>
-
-    <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-8 shadow-2xl backdrop-blur-sm">
-        <h1 class="text-xl font-bold text-white mb-1">Create account</h1>
-        <p class="text-sm text-slate-400 mb-6">Register as an Employee to get started</p>
-
+        <h2 class="text-xl font-bold tracking-tight text-white text-center mb-2">Create Account</h2>
+        <p class="text-xs text-slate-400 text-center mb-6">Register as an Employee to get started</p>
         {% if form.non_field_errors %}
         <div class="mb-4 flex items-start gap-3 p-3.5 bg-red-950/50 border border-red-500/30 rounded-xl">
-            <svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-            </svg>
             <div>
                 {% for error in form.non_field_errors %}
                 <p class="text-xs text-red-400">{{ error }}</p>
@@ -40,7 +39,6 @@
             </div>
         </div>
         {% endif %}
-
         <form method="post" class="space-y-4">
             {% csrf_token %}
             <div class="grid grid-cols-2 gap-3">
@@ -88,26 +86,12 @@
                 {% endif %}
             </div>
             <div class="flex items-start gap-2.5 p-3 bg-slate-900/50 border border-slate-700/60 rounded-lg mt-1">
-                <svg class="w-3.5 h-3.5 text-indigo-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <p class="text-xs text-slate-400">New accounts are registered with the <span class="text-indigo-400 font-medium">Employee</span> role. Contact an Admin to request a role upgrade.</p>
+                <p class="text-xs text-slate-400 font-medium">New accounts are registered with the Employee role. Elevate via Admin panels.</p>
             </div>
-            <button type="submit"
-                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors">
+            <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors">
                 Create Account
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-                </svg>
             </button>
         </form>
     </div>
-
-    <p class="text-center text-xs text-slate-500 mt-5">
-        Already have an account?
-        <a href="{% url 'login' %}" class="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">Sign in here</a>
-    </p>
-</div>
-
 </body>
 </html>

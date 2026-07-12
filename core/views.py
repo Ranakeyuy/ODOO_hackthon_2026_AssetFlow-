@@ -132,6 +132,21 @@ class AssetDirectoryView(LoginRequiredMixin, View):
                     })
                 return JsonResponse({'error': 'Invalid status'}, status=400)
             return JsonResponse({'error': 'Missing fields'}, status=400)
+        elif request.POST.get('action') == 'return_asset':
+            if request.user.role not in [User.ADMIN, User.ASSET_MANAGER]:
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Permission denied")
+            asset_id = request.POST.get('asset_id')
+            if asset_id:
+                asset = get_object_or_404(Asset, pk=asset_id)
+                active_alloc = AssetAllocation.objects.filter(asset=asset, actual_return_date__isnull=True).first()
+                if active_alloc:
+                    active_alloc.actual_return_date = timezone.now().date()
+                    active_alloc.save()
+                else:
+                    asset.status = Asset.AVAILABLE
+                    asset.save()
+                return redirect('asset_directory')
 
         form = AssetRegistrationForm(request.POST)
         if form.is_valid():
