@@ -1,8 +1,10 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-(96a$)hf&-=qp(h6u@!urw(avlz8io2+8agm-fb)0do3t^slkn'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-(96a$)hf&-=qp(h6u@!urw(avlz8io2+8agm-fb)0do3t^slkn')
+
 
 DEBUG = True
 
@@ -84,5 +86,14 @@ STATIC_URL = 'static/'
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
+
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+
 
 

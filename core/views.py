@@ -5,9 +5,14 @@ from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.db.models import Q
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from core.models import User, Asset, AssetAllocation, ResourceBooking, TransferRequest, MaintenanceRequest
 from core.forms import CustomUserCreationForm, ResourceBookingForm
+
+class IsAdminOrManagerMixin(UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.role in [User.ADMIN, User.ASSET_MANAGER]
+
 
 class UserLoginView(LoginView):
     template_name = 'core/login.html'
@@ -79,19 +84,19 @@ class BookingCalendarView(LoginRequiredMixin, View):
         bookings = ResourceBooking.objects.filter(end_time__gt=timezone.now()).select_related('resource', 'user')
         return render(request, 'core/booking_calendar.html', {'bookings': bookings, 'form': form})
 
-class ApproveTransferView(LoginRequiredMixin, View):
+class ApproveTransferView(LoginRequiredMixin, IsAdminOrManagerMixin, View):
     def post(self, request, pk):
         transfer_request = get_object_or_404(TransferRequest, pk=pk)
-        transfer_request.approve()
+        transfer_request.approve(approved_by=request.user)
         return redirect('dashboard')
 
-class ApproveMaintenanceView(LoginRequiredMixin, View):
+class ApproveMaintenanceView(LoginRequiredMixin, IsAdminOrManagerMixin, View):
     def post(self, request, pk):
         maintenance_request = get_object_or_404(MaintenanceRequest, pk=pk)
         maintenance_request.approve()
         return redirect('dashboard')
 
-class ResolveMaintenanceView(LoginRequiredMixin, View):
+class ResolveMaintenanceView(LoginRequiredMixin, IsAdminOrManagerMixin, View):
     def post(self, request, pk):
         maintenance_request = get_object_or_404(MaintenanceRequest, pk=pk)
         maintenance_request.resolve()
