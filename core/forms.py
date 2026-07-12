@@ -43,6 +43,16 @@ class ResourceBookingForm(forms.ModelForm):
         model = ResourceBooking
         fields = ['resource', 'user', 'start_time', 'end_time']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from django.db.models import Q
+        if self.instance and self.instance.pk:
+            self.fields['resource'].queryset = Asset.objects.filter(
+                Q(is_shared=True, status=Asset.AVAILABLE) | Q(pk=self.instance.resource.pk)
+            )
+        else:
+            self.fields['resource'].queryset = Asset.objects.filter(is_shared=True, status=Asset.AVAILABLE)
+
     def clean(self):
         cleaned_data = super().clean()
         start_time = cleaned_data.get('start_time')
