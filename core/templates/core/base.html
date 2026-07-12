@@ -69,9 +69,12 @@
                     <p class="text-xs font-bold text-slate-200">{{ request.user.get_full_name|default:request.user.username }}</p>
                     <p class="text-[10px] text-indigo-400 font-extrabold uppercase tracking-wide">{{ request.user.get_role_display }}</p>
                 </div>
-                <a href="{% url 'logout' %}" class="text-xs hover:text-red-400 ml-2 text-slate-400 font-semibold">
-                    Logout
-                </a>
+                <form action="{% url 'logout' %}" method="post" class="inline ml-2">
+                    {% csrf_token %}
+                    <button type="submit" class="text-xs hover:text-red-400 text-slate-400 font-semibold">
+                        Logout
+                    </button>
+                </form>
             </div>
             {% else %}
             <a href="{% url 'login' %}"
