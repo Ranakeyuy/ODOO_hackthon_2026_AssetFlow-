@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - AssetFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center font-sans">
+
+    <div class="max-w-md w-full bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl">
+        <h2 class="text-2xl font-bold tracking-tight text-white text-center mb-6">Register for AssetFlow</h2>
+        <p class="text-sm text-slate-400 text-center mb-8">Create your employee account to get started.</p>
+
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="p-3 bg-red-950/40 border border-red-900/50 rounded-xl text-xs text-red-300 font-medium">
+                {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% for field in form %}
+            {% if field.name != 'password1' and field.name != 'password2' %}
+            <div>
+                <label for="{{ field.id_for_label }}"
+                    class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">
+                    {{ field.label }}
+                </label>
+                {{ field }}
+                {% if field.errors %}
+                {% for error in field.errors %}
+                <p class="text-red-400 text-[10px] mt-1">{{ error }}</p>
+                {% endfor %}
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+
+            <div>
+                <label for="{{ form.password1.id_for_label }}"
+                    class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Password</label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}
+                {% for error in form.password1.errors %}
+                <p class="text-red-400 text-[10px] mt-1">{{ error }}</p>
+                {% endfor %}
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.password2.id_for_label }}"
+                    class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Confirm
+                    Password</label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                {% for error in form.password2.errors %}
+                <p class="text-red-400 text-[10px] mt-1">{{ error }}</p>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            <div
+                class="mt-4 p-3 bg-indigo-950/30 border border-indigo-900/50 rounded-lg text-[10px] text-indigo-300 font-medium">
+                Security Rule: Public signup registers users into a baseline 'Employee' role only. Elevated roles can
+                only be granted by an administrator.
+            </div>
+
+            <button type="submit"
+                class="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors">
+                Complete Registration
+            </button>
+        </form>
+    </div>
+
+</body>
+
+</html>

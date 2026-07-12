@@ -1,248 +1,139 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AssetFlow Enterprise{% endblock %}</title>
+    <title>AssetFlow Enterprise</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        surface: '#0f172a',
-                        panel: '#1e293b',
-                        border: '#334155',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; color: #e2e8f0; }
-        .sidebar-link { transition: background 0.15s, color 0.15s; }
-        .sidebar-link:hover { background: rgba(99,102,241,0.12); color: #a5b4fc; }
-        .sidebar-link.active { background: rgba(99,102,241,0.2); color: #818cf8; border-left: 3px solid #6366f1; }
-        .notif-dropdown { display: none; }
-        .notif-dropdown.open { display: block; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
+        /* Custom styles for status badges */
+        .status-badge {
+            @apply text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wide;
+        }
+
+        .status-available {
+            @apply bg-green-950 text-green-300 border border-green-900/30;
+        }
+
+        .status-allocated {
+            @apply bg-indigo-950 text-indigo-300 border border-indigo-900/30;
+        }
+
+        .status-reserved {
+            @apply bg-blue-950 text-blue-300 border border-blue-900/30;
+        }
+
+        .status-under-maintenance {
+            @apply bg-yellow-950 text-yellow-300 border border-yellow-900/30;
+        }
+
+        .status-lost {
+            @apply bg-red-950 text-red-300 border border-red-900/30;
+        }
+
+        .status-retired {
+            @apply bg-gray-950 text-gray-300 border border-gray-900/30;
+        }
+
+        .status-disposed {
+            @apply bg-purple-950 text-purple-300 border border-purple-900/30;
+        }
     </style>
-    {% block extra_head %}{% endblock %}
 </head>
-<body class="h-full font-sans antialiased">
 
-<div class="flex h-screen overflow-hidden">
+<body class="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
 
-    <aside class="w-64 flex-shrink-0 bg-panel border-r border-slate-700/60 flex flex-col overflow-y-auto">
-        <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-700/60">
-            <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-sm font-bold text-white tracking-tight">AssetFlow</p>
-                <p class="text-xs text-slate-400">Enterprise</p>
-            </div>
+    <header
+        class="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 flex items-center justify-between px-6">
+        <div class="flex items-center gap-3">
+            <span class="font-extrabold text-lg tracking-wider text-indigo-400">ASSETFLOW</span>
+            <span
+                class="text-xs bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-400 font-semibold uppercase">Enterprise
+                ERP</span>
         </div>
-
-        <nav class="flex-1 px-3 py-4 space-y-0.5">
-            <p class="px-3 pt-2 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">Main</p>
-
-            <a href="{% url 'dashboard' %}"
-               class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %} flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 font-medium">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                </svg>
-                Dashboard
-            </a>
-
-            <p class="px-3 pt-4 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">Organization</p>
-
-            <a href="#"
-               class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 font-medium">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-                Organization Setup
-            </a>
-
-            <p class="px-3 pt-4 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">Assets</p>
-
-            <a href="{% url 'asset_directory' %}"
-               class="sidebar-link {% if request.resolver_match.url_name == 'asset_directory' %}active{% endif %} flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 font-medium">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                </svg>
-                Asset Directory
-            </a>
-
-            <a href="#"
-               class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 font-medium">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                </svg>
-                Asset Allocation
-            </a>
-
-            <p class="px-3 pt-4 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">Operations</p>
-
-            <a href="{% url 'booking_calendar' %}"
-               class="sidebar-link {% if request.resolver_match.url_name == 'booking_calendar' %}active{% endif %} flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 font-medium">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                Resource Booking
-            </a>
-
-            <a href="#"
-               class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 font-medium">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                Maintenance
-            </a>
-        </nav>
-
-        <div class="px-3 py-4 border-t border-slate-700/60">
-            <a href="{% url 'profile' %}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 font-medium">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                </svg>
-                My Profile
-            </a>
-            <form method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 font-medium text-left mt-0.5">
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                    </svg>
-                    Sign Out
-                </button>
-            </form>
-        </div>
-    </aside>
-
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-        <header class="flex-shrink-0 h-14 bg-panel border-b border-slate-700/60 flex items-center justify-between px-6">
-            <div class="flex items-center gap-2">
-                <h1 class="text-sm font-semibold text-white">{% block page_title %}Dashboard{% endblock %}</h1>
-                {% block breadcrumb %}{% endblock %}
-            </div>
-
-            <div class="flex items-center gap-4">
-                <div class="relative" id="notif-container">
-                    <button id="notif-btn" onclick="toggleNotif()" class="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        {% if overdue_returns %}
-                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                        {% endif %}
-                    </button>
-
-                    <div id="notif-dropdown" class="notif-dropdown absolute right-0 top-full mt-2 w-80 bg-panel border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
-                        <div class="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-                            <p class="text-sm font-semibold text-white">Notifications</p>
-                            {% if overdue_returns %}
-                            <span class="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-medium">{{ overdue_returns|length }} overdue</span>
-                            {% endif %}
-                        </div>
-                        <div class="max-h-72 overflow-y-auto divide-y divide-slate-700/50">
-                            {% if overdue_returns %}
-                                {% for o in overdue_returns %}
-                                <div class="px-4 py-3 hover:bg-slate-700/30 transition-colors">
-                                    <div class="flex items-start gap-3">
-                                        <div class="w-7 h-7 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <svg class="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                            </svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-semibold text-white truncate">{{ o.asset.name }}</p>
-                                            <p class="text-xs text-slate-400 mt-0.5">{{ o.user.get_full_name|default:o.user.username }} &mdash; due {{ o.expected_return_date }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="px-4 py-8 text-center">
-                                    <p class="text-xs text-slate-500">No new notifications</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
+        <div class="flex items-center gap-6">
+            {% if request.user.is_authenticated %}
+            <div class="flex items-center gap-3 border-l border-slate-800 pl-6">
+                <div
+                    class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-extrabold text-xs text-white">
+                    {% if request.user.first_name and request.user.last_name %}
+                    {{ request.user.first_name|first }}{{ request.user.last_name|first }}
+                    {% else %}
+                    {{ request.user.username|first }}
+                    {% endif %}
                 </div>
-
-                <div class="flex items-center gap-3 pl-4 border-l border-slate-700">
-                    <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                        {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
-                    </div>
-                    <div class="hidden sm:block">
-                        <p class="text-xs font-semibold text-white leading-tight">
-                            {{ request.user.get_full_name|default:request.user.username }}
-                        </p>
-                        <div class="flex items-center gap-1.5 mt-0.5">
-                            <span class="text-xs
-                                {% if request.user.role == 'ADMIN' %}text-red-400
-                                {% elif request.user.role == 'ASSET_MANAGER' %}text-amber-400
-                                {% elif request.user.role == 'DEPARTMENT_HEAD' %}text-sky-400
-                                {% else %}text-slate-400{% endif %}
-                                font-medium">
-                                {{ request.user.get_role_display }}
-                            </span>
-                        </div>
-                    </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-200">{{
+                        request.user.get_full_name|default:request.user.username }}</p>
+                    <p class="text-[10px] text-indigo-400 font-extrabold uppercase tracking-wide">{{
+                        request.user.get_role_display }}</p>
                 </div>
+                <a href="{% url 'logout' %}" class="text-xs hover:text-red-400 ml-2 text-slate-400 font-semibold">
+                    Logout
+                </a>
             </div>
-        </header>
-
-        <main class="flex-1 overflow-y-auto bg-surface">
-            {% if messages %}
-            <div class="px-6 pt-4 space-y-2">
-                {% for message in messages %}
-                <div class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
-                    {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/30 text-red-400
-                    {% elif message.tags == 'success' %}bg-emerald-500/10 border border-emerald-500/30 text-emerald-400
-                    {% elif message.tags == 'warning' %}bg-amber-500/10 border border-amber-500/30 text-amber-400
-                    {% else %}bg-indigo-500/10 border border-indigo-500/30 text-indigo-400{% endif %}">
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    {{ message }}
-                </div>
-                {% endfor %}
-            </div>
+            {% else %}
+            <a href="{% url 'login' %}"
+                class="text-xs hover:text-indigo-400 ml-2 text-slate-400 font-semibold">Login</a>
+            <a href="{% url 'register' %}"
+                class="text-xs hover:text-indigo-400 ml-2 text-slate-400 font-semibold">Register</a>
             {% endif %}
+        </div>
+    </header>
 
-            <div class="p-6">
-                {% block content %}{% endblock %}
-            </div>
+    <div class="flex-1 flex overflow-hidden">
+        {% if request.user.is_authenticated %}
+        <aside class="w-64 border-r border-slate-800 bg-slate-900/60 p-4 flex flex-col gap-1.5 shrink-0">
+            <p class="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase px-3 mb-2">Main Navigation</p>
+            {% url 'dashboard' as dashboard_url %}
+            {% url 'asset_directory' as directory_url %}
+            {% url 'asset_allocation' as allocation_url %} {# Placeholder URL #}
+            {% url 'booking_calendar' as booking_url %}
+
+            {% with request.resolver_match.view_name as current_view_name %}
+            <a href="{{ dashboard_url }}"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'dashboard' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="{{ directory_url }}"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'asset_directory' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <span>Asset Directory</span>
+            </a>
+            <a href="{{ allocation_url }}"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'asset_allocation' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span>Allocate Asset</span>
+            </a>
+            <a href="{{ booking_url }}"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'booking_calendar' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>New Booking</span>
+            </a>
+            {% endwith %}
+        </aside>
+        {% endif %}
+
+        <main class="flex-1 overflow-y-auto p-8">
+            {% block content %}
+            {% endblock %}
         </main>
     </div>
-</div>
 
-<script>
-    function toggleNotif() {
-        const dropdown = document.getElementById('notif-dropdown');
-        dropdown.classList.toggle('open');
-    }
-    document.addEventListener('click', function(e) {
-        const container = document.getElementById('notif-container');
-        if (container && !container.contains(e.target)) {
-            document.getElementById('notif-dropdown').classList.remove('open');
-        }
-    });
-</script>
-{% block extra_scripts %}{% endblock %}
 </body>
+
 </html>

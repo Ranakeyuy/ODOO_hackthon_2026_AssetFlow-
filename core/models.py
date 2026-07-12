@@ -106,8 +106,16 @@ class Asset(models.Model):
             if not is_new and old_status != self.status:
                 SystemLog.objects.create(
                     target_asset=self,
+<<<<<<< Updated upstream
                     action_type="STATE_CHANGE",
                     action=f"Asset {self.tag} status shifted from {old_status} to {self.status}."
+=======
+                    action_type='STATE_CHANGE',
+                    action=( # Corrected variable name from original_status to self._original_status
+                        f"Asset '{self.tag}' status changed from "
+                        f"'{self._original_status}' to '{self.status}'."
+                    ),
+>>>>>>> Stashed changes
                 )
 
     def __str__(self):
@@ -304,7 +312,10 @@ class MaintenanceRequest(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    _original_status = None # To store the original status before save
+
     def save(self, *args, **kwargs):
+<<<<<<< Updated upstream
         is_new = self._state.adding
         old_status = None
         if not is_new:
@@ -322,6 +333,37 @@ class MaintenanceRequest(models.Model):
             elif self.status == self.RESOLVED and old_status != self.RESOLVED:
                 self.asset.status = Asset.AVAILABLE
                 self.asset.save()
+=======
+        with transaction.atomic():
+            if self.pk: # Only fetch old status if it's an existing object
+                self._original_status = MaintenanceRequest.objects.get(pk=self.pk).status
+            if self.status == self.RESOLVED and self.resolved_at is None:
+                self.resolved_at = timezone.now()
+            super().save(*args, **kwargs)
+            if self.status == self.APPROVED and self._original_status != self.APPROVED:
+                Asset.objects.filter(pk=self.asset.pk).update(status=Asset.UNDER_MAINTENANCE)
+                self.asset.refresh_from_db(fields=['status'])
+                SystemLog.objects.create(
+                    target_asset=self.asset,
+                    action_type='MAINTENANCE_START',
+                    action=(
+                        f"Asset '{self.asset.tag}' placed under maintenance. "
+                        f"Request raised by '{self.requested_by.username}'."
+                    ),
+                )
+            elif self.status == self.RESOLVED and self._original_status != self.RESOLVED:
+                Asset.objects.filter(pk=self.asset.pk).update(status=Asset.AVAILABLE)
+                self.asset.refresh_from_db(fields=['status'])
+                SystemLog.objects.create(
+                    target_asset=self.asset,
+                    action_type='MAINTENANCE_END',
+                    action=(
+                        f"Asset '{self.asset.tag}' maintenance resolved. "
+                        f"Status restored to Available on {self.resolved_at.date()}."
+                    ),
+                )
+
+>>>>>>> Stashed changes
 
 class AuditCycle(models.Model):
     title = models.CharField(max_length=200)
