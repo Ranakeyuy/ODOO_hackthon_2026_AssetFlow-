@@ -6,6 +6,7 @@ from core.views import (
     AssetDirectoryView,
     BookingCalendarView,
     ApproveTransferView,
+    RejectTransferView,
     ApproveMaintenanceView,
     ResolveMaintenanceView,
     UserProfileView,
@@ -18,9 +19,9 @@ urlpatterns = [
     path('assets/', AssetDirectoryView.as_view(), name='asset_directory'),
     path('bookings/', BookingCalendarView.as_view(), name='booking_calendar'),
     path('transfers/<int:pk>/approve/', ApproveTransferView.as_view(), name='approve_transfer'),
+    path('transfers/<int:pk>/reject/', RejectTransferView.as_view(), name='reject_transfer'),
     path('maintenance/<int:pk>/approve/', ApproveMaintenanceView.as_view(), name='approve_maintenance'),
     path('maintenance/<int:pk>/resolve/', ResolveMaintenanceView.as_view(), name='resolve_maintenance'),
-    path('accounts/profile/', UserProfileView.as_view(), name='profile'),
-    path('profile/', UserProfileView.as_view()),
+    path('profile/', UserProfileView.as_view(), name='profile'),
+    path('accounts/profile/', UserProfileView.as_view()),
 ]
-

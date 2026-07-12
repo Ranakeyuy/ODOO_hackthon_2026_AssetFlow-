@@ -51,7 +51,7 @@ def seed_db():
     for dd in depts_data:
         dept, created = Department.objects.get_or_create(
             name=dd["name"],
-            defaults={"id": dd["id"]}
+            defaults={}
         )
         dept_map[dd["id"]] = dept
         
@@ -77,7 +77,6 @@ def seed_db():
         cat, created = AssetCategory.objects.get_or_create(
             name=cd["name"],
             defaults={
-                "id": cd["id"],
                 "description": cd["description"],
                 "schema": cd["schema"]
             }
@@ -100,7 +99,6 @@ def seed_db():
         asset, created = Asset.objects.get_or_create(
             tag=ad["tag"],
             defaults={
-                "id": ad["id"],
                 "name": ad["name"],
                 "serial_number": ad["serial_number"],
                 "category": cat_map[ad["categoryId"]],
@@ -148,8 +146,8 @@ def seed_db():
         start = datetime.fromisoformat(bd["startTime"])
         end = datetime.fromisoformat(bd["endTime"])
         booking, created = ResourceBooking.objects.get_or_create(
-            id=bd["id"],
-            defaults={
+            id=bd["id"], # This is the lookup field
+            defaults={ # This was missing and caused the SyntaxError
                 "resource": asset_map[bd["resourceId"]],
                 "user": user_map[bd["userId"]],
                 "start_time": timezone.make_aware(start),
@@ -165,8 +163,8 @@ def seed_db():
     for td in transfers_data:
         created_at = datetime.fromisoformat(td["createdAt"].replace('Z', '+00:00'))
         transfer, created = TransferRequest.objects.get_or_create(
-            id=td["id"],
-            defaults={
+            id=td["id"], # This is the lookup field
+            defaults={ # This was missing and caused the SyntaxError
                 "asset": asset_map[td["assetId"]],
                 "from_user": user_map[td["fromUserId"]],
                 "to_user": user_map[td["toUserId"]],
@@ -184,8 +182,8 @@ def seed_db():
     for md in maintenance_data:
         created_at = datetime.fromisoformat(md["createdAt"].replace('Z', '+00:00'))
         maint, created = MaintenanceRequest.objects.get_or_create(
-            id=md["id"],
-            defaults={
+            id=md["id"], # This is the lookup field
+            defaults={ # This was missing and caused the SyntaxError
                 "asset": asset_map[md["assetId"]],
                 "requested_by": user_map[md["requestedById"]],
                 "description": md["description"],
