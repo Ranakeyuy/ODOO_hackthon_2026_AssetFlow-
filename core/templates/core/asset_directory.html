@@ -6,6 +6,8 @@
 {% block extra_head %}
 <!-- Chart.js CDN for Category Distribution chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- SheetJS CDN for Excel export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
     .status-badge-AVAILABLE    { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
     .status-badge-ALLOCATED    { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
@@ -194,11 +196,11 @@
             <p class="text-xs font-bold text-white uppercase tracking-wider mb-2">Export Asset Data</p>
             <p class="text-[11px] text-slate-400">Download the currently filtered asset list in your preferred format.</p>
             <div class="grid grid-cols-2 gap-2 mt-2">
-                <button onclick="exportData('csv')" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors">
+                <button onclick="exportData('xlsx')" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                     </svg>
-                    CSV
+                    EXCEL
                 </button>
                 <button onclick="exportData('json')" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -506,49 +508,25 @@
         setTimeout(() => document.getElementById('drawer-backdrop').classList.add('hidden'), 300);
     }
 
-    // Export currently loaded assets into CSV or JSON
+    // Export currently loaded assets into Excel (xlsx) or JSON
     function exportData(format) {
-        const rows = [];
-        rows.push(['Tag', 'Name', 'Category', 'Serial Number', 'Location', 'Status', 'Acquired Date', 'Cost']);
+        const assetsList = Object.values(assetIndex).map(asset => ({
+            'Tag': asset.tag,
+            'Name': asset.name,
+            'Category': asset.category,
+            'Serial Number': asset.serial || '',
+            'Location': asset.location || '',
+            'Status': asset.statusDisplay,
+            'Acquired Date': asset.acquired,
+            'Cost': asset.cost ? parseFloat(asset.cost) : 0
+        }));
 
-        for (const pk in assetIndex) {
-            const asset = assetIndex[pk];
-            rows.push([
-                asset.tag,
-                asset.name,
-                asset.category,
-                asset.serial || '',
-                asset.location || '',
-                asset.statusDisplay,
-                asset.acquired,
-                asset.cost || '0'
-            ]);
-        }
-
-        if (format === 'csv') {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            rows.forEach(row => {
-                const escapedRow = row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",");
-                csvContent += escapedRow + "\r\n";
-            });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `assetflow_export_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        if (format === 'xlsx') {
+            const ws = XLSX.utils.json_to_sheet(assetsList);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Assets");
+            XLSX.writeFile(wb, `assetflow_export_${new Date().toISOString().slice(0,10)}.xlsx`);
         } else if (format === 'json') {
-            const assetsList = Object.values(assetIndex).map(asset => ({
-                tag: asset.tag,
-                name: asset.name,
-                category: asset.category,
-                serial_number: asset.serial,
-                location: asset.location,
-                status: asset.statusDisplay,
-                acquisition_date: asset.acquired,
-                cost: asset.cost
-            }));
             const jsonString = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(assetsList, null, 2));
             const link = document.createElement("a");
             link.setAttribute("href", jsonString);

@@ -108,6 +108,9 @@ class Asset(models.Model):
             if not is_new and old_status != self.status:
                 SystemLog.objects.create(
                     target_asset=self,
+                    target_asset_tag=self.tag,
+                    before_state=old_status,
+                    after_state=self.status,
                     action_type="STATE_CHANGE",
                     action=f"Asset {self.tag} status shifted from {old_status} to {self.status}."
                 )
@@ -144,7 +147,7 @@ class AssetAllocation(models.Model):
                 holder_name = "Unknown"
                 if active_alloc:
                     holder_name = active_alloc.user.get_full_name() or active_alloc.user.username
-                    raise ValidationError(f"Asset is not available. Currently held by {holder_name}.")
+                raise ValidationError(f"Asset is not available. Currently held by {holder_name}.")
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -156,6 +159,9 @@ class AssetAllocation(models.Model):
                 self.asset.save()
                 SystemLog.objects.create(
                     target_asset=self.asset,
+                    target_asset_tag=self.asset.tag,
+                    before_state=Asset.AVAILABLE,
+                    after_state=Asset.ALLOCATED,
                     action_type="ALLOCATION_OPEN",
                     action=f"Asset {self.asset.tag} allocated to {self.user.username}."
                 )
@@ -164,6 +170,9 @@ class AssetAllocation(models.Model):
                 self.asset.save()
                 SystemLog.objects.create(
                     target_asset=self.asset,
+                    target_asset_tag=self.asset.tag,
+                    before_state=Asset.ALLOCATED,
+                    after_state=Asset.AVAILABLE,
                     action_type="ALLOCATION_CLOSE",
                     action=f"Asset {self.asset.tag} returned by {self.user.username}."
                 )
@@ -269,6 +278,9 @@ class TransferRequest(models.Model):
                 SystemLog.objects.create(
                     actor=approved_by,
                     target_asset=self.asset,
+                    target_asset_tag=self.asset.tag,
+                    before_state=Asset.ALLOCATED,
+                    after_state=Asset.ALLOCATED,
                     action_type="TRANSFER_APPROVAL",
                     action=f"Approved transfer request of asset {self.asset.tag} from {self.from_user.username} to {self.to_user.username}."
                 )
@@ -321,22 +333,22 @@ class MaintenanceRequest(models.Model):
                 self.asset.refresh_from_db(fields=['status'])
                 SystemLog.objects.create(
                     target_asset=self.asset,
+                    target_asset_tag=self.asset.tag,
+                    before_state=Asset.AVAILABLE,
+                    after_state=Asset.UNDER_MAINTENANCE,
                     action_type='MAINTENANCE_START',
-                    action=(
-                        f"Asset '{self.asset.tag}' placed under maintenance. "
-                        f"Request raised by '{self.requested_by.username}'."
-                    ),
+                    action=f"Asset '{self.asset.tag}' placed under maintenance. Request raised by '{self.requested_by.username}'."
                 )
             elif self.status == self.RESOLVED and self._original_status != self.RESOLVED:
                 Asset.objects.filter(pk=self.asset.pk).update(status=Asset.AVAILABLE)
                 self.asset.refresh_from_db(fields=['status'])
                 SystemLog.objects.create(
                     target_asset=self.asset,
+                    target_asset_tag=self.asset.tag,
+                    before_state=Asset.UNDER_MAINTENANCE,
+                    after_state=Asset.AVAILABLE,
                     action_type='MAINTENANCE_END',
-                    action=(
-                        f"Asset '{self.asset.tag}' maintenance resolved. "
-                        f"Status restored to Available on {self.resolved_at.date()}."
-                    ),
+                    action=f"Asset '{self.asset.tag}' maintenance resolved. Status restored to Available on {self.resolved_at.date()}."
                 )
 
 class AuditCycle(models.Model):
@@ -363,12 +375,19 @@ class AuditCycle(models.Model):
                 missing_entries = self.entries.filter(status='MISSING')
                 asset_ids = missing_entries.values_list('asset_id', flat=True)
                 
-                Asset.objects.filter(id__in=asset_ids).update(status=Asset.LOST)
-                
                 for asset_id in asset_ids:
+                    asset = Asset.objects.get(id=asset_id)
+                    old_status = asset.status
+                    asset.status = Asset.LOST
+                    asset.save()
                     SystemLog.objects.create(
                         actor=actor,
-                        action=f"Asset ID {asset_id} marked as LOST due to missing audit entry."
+                        target_asset=asset,
+                        target_asset_tag=asset.tag,
+                        before_state=old_status,
+                        after_state=Asset.LOST,
+                        action_type="AUDIT_MISSING_LOST",
+                        action=f"Asset {asset.tag} marked as LOST due to missing audit entry."
                     )
 
 class AuditEntry(models.Model):
@@ -416,9 +435,20 @@ class SystemLog(models.Model):
         blank=True,
         related_name='system_logs'
     )
+    target_asset_tag = models.CharField(max_length=50, blank=True)
+    before_state = models.CharField(max_length=50, blank=True)
+    after_state = models.CharField(max_length=50, blank=True)
     action_type = models.CharField(max_length=50, blank=True)
     action = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError("SystemLog records are immutable and read-only.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("SystemLog records cannot be deleted.")
 
 class IoTDevice(models.Model):
     ONLINE = 'ONLINE'
@@ -463,10 +493,14 @@ class IoTDevice(models.Model):
                         severity="CRITICAL",
                         message=f"High temperature detected: {temp}°C (Threshold: {max_temp}°C)."
                     )
+                    old_status = self.asset.status
                     self.asset.status = Asset.UNDER_MAINTENANCE
                     self.asset.save()
                     SystemLog.objects.create(
                         target_asset=self.asset,
+                        target_asset_tag=self.asset.tag,
+                        before_state=old_status,
+                        after_state=Asset.UNDER_MAINTENANCE,
                         action_type="IOT_CRITICAL_ALERT",
                         action=f"Asset {self.asset.tag} moved to maintenance due to critical high temperature alert."
                     )
