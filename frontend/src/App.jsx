@@ -31,6 +31,7 @@ export default function App() {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null); 
   const [activeOrgTab, setActiveOrgTab] = useState('departments'); 
+  const [toast, setToast] = useState(null);
 
   const [authMode, setAuthMode] = useState('login');
   const [loginEmail, setLoginEmail] = useState('');
@@ -39,6 +40,17 @@ export default function App() {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPass, setSignupPass] = useState('');
   const [signupDept, setSignupDept] = useState('1');
+
+  const [newDeptName, setNewDeptName] = useState('');
+  const [newDeptParent, setNewDeptParent] = useState('');
+  const [newDeptHead, setNewDeptHead] = useState('');
+
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatDesc, setNewCatDesc] = useState('');
+
+  const [editLocation, setEditLocation] = useState('');
+  const [editCondition, setEditCondition] = useState('');
+  const [editCost, setEditCost] = useState('');
 
   const [regName, setRegName] = useState('');
   const [regCat, setRegCat] = useState('1');
@@ -67,15 +79,23 @@ export default function App() {
   const [maintDesc, setMaintDesc] = useState('');
   const [maintPriority, setMaintPriority] = useState('Medium');
 
+  const [techAssignment, setTechAssignment] = useState({});
+
   const [auditPlanLocation, setAuditPlanLocation] = useState('');
   const [auditPlanAuditor, setAuditPlanAuditor] = useState('2');
   const [auditReport, setAuditReport] = useState(null);
+
+  const triggerToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const handleLogin = (e) => {
     e.preventDefault();
     const foundUser = users.find(u => u.email === loginEmail) || users[0];
     setCurrentUser(foundUser);
     setCurrentView('dashboard');
+    triggerToast(`Welcome back, ${foundUser.name}!`);
   };
 
   const handleSignup = (e) => {
@@ -91,6 +111,50 @@ export default function App() {
     setUsers([...users, newUser]);
     setCurrentUser(newUser);
     setCurrentView('dashboard');
+    triggerToast("Registration completed as baseline Employee!");
+  };
+
+  const handleCreateDepartment = (e) => {
+    e.preventDefault();
+    const newDept = {
+      id: departments.length + 1,
+      name: newDeptName,
+      parentId: newDeptParent ? parseInt(newDeptParent) : null,
+      headId: newDeptHead ? parseInt(newDeptHead) : null,
+      isActive: true
+    };
+    setDepartments([...departments, newDept]);
+    setNewDeptName('');
+    setNewDeptParent('');
+    setNewDeptHead('');
+    triggerToast("New department tree branch created!");
+  };
+
+  const handleCreateCategory = (e) => {
+    e.preventDefault();
+    const newCat = {
+      id: categories.length + 1,
+      name: newCatName,
+      description: newCatDesc,
+      schema: { warrantyYears: "number", manufacturer: "string" }
+    };
+    setCategories([...categories, newCat]);
+    setNewCatName('');
+    setNewCatDesc('');
+    triggerToast("New asset category defined!");
+  };
+
+  const handleUpdateAssetDetails = (e) => {
+    e.preventDefault();
+    if (!selectedAsset) return;
+    setAssets(assets.map(a => a.id === selectedAsset.id ? { 
+      ...a, 
+      location: editLocation || a.location,
+      condition: editCondition || a.condition,
+      cost: editCost ? parseFloat(editCost) : a.cost
+    } : a));
+    triggerToast(`Asset ${selectedAsset.tag} details updated!`);
+    setSelectedAsset(null);
   };
 
   const handleRegisterAsset = (e) => {
@@ -123,6 +187,7 @@ export default function App() {
     setRegSerial('');
     setRegLocation('');
     setRegCost('');
+    triggerToast(`Asset ${nextTag} registered successfully!`);
   };
 
   const handleAllocationAssetChange = (assetId) => {
@@ -170,6 +235,7 @@ export default function App() {
       action: `Allocated asset ${targetAsset.tag} to user ID ${allocUser}.`
     }, ...logs]);
     setAllocAsset('');
+    triggerToast("Asset allocation processed!");
   };
 
   const handleInitiateTransfer = () => {
@@ -200,6 +266,7 @@ export default function App() {
     }, ...logs]);
     setAllocAsset('');
     setAllocConflictMsg(null);
+    triggerToast("Transfer request submitted!");
   };
 
   const handleApproveTransfer = (transId) => {
@@ -228,6 +295,7 @@ export default function App() {
       actionType: 'TRANSFER_APPROVED',
       action: `Approved transfer request for asset ID ${trans.assetId}.`
     }, ...logs]);
+    triggerToast("Transfer request approved & asset re-allocated!");
   };
 
   const handleProcessReturn = (e) => {
@@ -251,6 +319,7 @@ export default function App() {
 
     setReturnAssetId('');
     setReturnNotes('');
+    triggerToast("Asset return checked in!");
   };
 
   const handleCreateBooking = (e) => {
@@ -287,6 +356,7 @@ export default function App() {
     setBookError(null);
     setBookStart('');
     setBookEnd('');
+    triggerToast("Resource booking slots reserved!");
   };
 
   const handleRaiseMaintenance = (e) => {
@@ -303,6 +373,7 @@ export default function App() {
 
     setMaintenance([...maintenance, newMaint]);
     setMaintDesc('');
+    triggerToast("Maintenance fault request filed!");
   };
 
   const handleUpdateMaintenanceStatus = (id, newStatus) => {
@@ -312,9 +383,16 @@ export default function App() {
 
     if (newStatus === 'APPROVED') {
       setAssets(assets.map(a => a.id === ticket.assetId ? { ...a, status: 'UNDER_MAINTENANCE' } : a));
+      triggerToast("Ticket approved: Asset status set to Under Maintenance.");
     } else if (newStatus === 'RESOLVED') {
       setAssets(assets.map(a => a.id === ticket.assetId ? { ...a, status: 'AVAILABLE' } : a));
+      triggerToast("Ticket resolved: Asset status set to Available.");
     }
+  };
+
+  const handleAssignTechnician = (ticketId, userId) => {
+    setTechAssignment({ ...techAssignment, [ticketId]: userId });
+    triggerToast(`Technician assigned to maintenance ticket!`);
   };
 
   const handleUpdateAuditStatus = (entryId, nextStatus) => {
@@ -334,10 +412,12 @@ export default function App() {
       missing: cycleEntries.filter(e => e.status === 'MISSING').map(e => assets.find(a => a.id === e.assetId)?.name),
       damaged: cycleEntries.filter(e => e.status === 'DAMAGED').map(e => assets.find(a => a.id === e.assetId)?.name)
     });
+    triggerToast("Audit cycle locked and discrepancies resolved!");
   };
 
   const handlePromoteRole = (userId, nextRole) => {
     setUsers(users.map(u => u.id === userId ? { ...u, role: nextRole } : u));
+    triggerToast(`User role elevated successfully!`);
   };
 
   const activeDeptObj = departments.find(d => d.id === currentUser.departmentId);
@@ -345,6 +425,13 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
       
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 bg-gradient-to-r from-indigo-600 to-purple-600 border border-indigo-500/30 text-white font-extrabold text-xs py-3 px-5 rounded-xl shadow-2xl flex items-center gap-3 animate-fade-in-down">
+          <span className="w-2.5 h-2.5 bg-green-400 rounded-full animate-ping"></span>
+          <span>{toast}</span>
+        </div>
+      )}
+
       <header className="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 flex items-center justify-between px-6">
         <div className="flex items-center gap-3">
           <span className="font-extrabold text-lg tracking-wider text-indigo-400">ASSETFLOW</span>
@@ -625,40 +712,91 @@ export default function App() {
               </div>
 
               {activeOrgTab === 'departments' && (
-                <div className="bg-slate-800/30 border border-slate-850 p-6 rounded-xl">
-                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Hierarchical Departments Tree</h3>
-                  <div className="space-y-4">
-                    {departments.filter(d => d.parentId === null).map(parent => (
-                      <div key={parent.id} className="border-l-2 border-slate-700 pl-4 space-y-2">
-                        <div className="flex items-center justify-between p-3 bg-slate-800/80 rounded-lg border border-slate-750">
-                          <div>
-                            <span className="text-xs font-extrabold text-slate-100">{parent.name}</span>
-                            <span className="text-[10px] ml-3 bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full uppercase">Parent Dept</span>
-                          </div>
-                          <div className="text-xs text-slate-400">
-                            Head: {users.find(u => u.id === parent.headId)?.name || 'None Assigned'}
-                          </div>
-                        </div>
-                        {departments.filter(d => d.parentId === parent.id).map(child => (
-                          <div key={child.id} className="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg border border-slate-800 ml-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="bg-slate-800/30 border border-slate-850 p-6 rounded-xl lg:col-span-2">
+                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Hierarchical Departments Tree</h3>
+                    <div className="space-y-4">
+                      {departments.filter(d => d.parentId === null).map(parent => (
+                        <div key={parent.id} className="border-l-2 border-slate-700 pl-4 space-y-2">
+                          <div className="flex items-center justify-between p-3 bg-slate-800/80 rounded-lg border border-slate-750">
                             <div>
-                              <span className="text-xs font-bold text-slate-300">{child.name}</span>
-                              <span className="text-[10px] ml-3 bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded-full uppercase border border-indigo-900/30">Sub-Dept</span>
+                              <span className="text-xs font-extrabold text-slate-100">{parent.name}</span>
+                              <span className="text-[10px] ml-3 bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full uppercase">Parent Dept</span>
                             </div>
-                            <div className="text-xs text-slate-400 font-medium">
-                              Head: {users.find(u => u.id === child.headId)?.name || 'None Assigned'}
+                            <div className="text-xs text-slate-400">
+                              Head: {users.find(u => u.id === parent.headId)?.name || 'None Assigned'}
                             </div>
                           </div>
-                        ))}
+                          {departments.filter(d => d.parentId === parent.id).map(child => (
+                            <div key={child.id} className="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg border border-slate-800 ml-6">
+                              <div>
+                                <span className="text-xs font-bold text-slate-300">{child.name}</span>
+                                <span className="text-[10px] ml-3 bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded-full uppercase border border-indigo-900/30">Sub-Dept</span>
+                              </div>
+                              <div className="text-xs text-slate-400 font-medium">
+                                Head: {users.find(u => u.id === child.headId)?.name || 'None Assigned'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-800/30 border border-slate-800 p-6 rounded-xl">
+                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Create Department</h3>
+                    <form onSubmit={handleCreateDepartment} className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Department Name</label>
+                        <input 
+                          type="text" 
+                          required 
+                          value={newDeptName} 
+                          onChange={e => setNewDeptName(e.target.value)} 
+                          placeholder="e.g. Sales Division" 
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
+                        />
                       </div>
-                    ))}
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Parent Department (Optional)</label>
+                        <select 
+                          value={newDeptParent} 
+                          onChange={e => setNewDeptParent(e.target.value)} 
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                        >
+                          <option value="">None (Top Level)</option>
+                          {departments.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Department Head</label>
+                        <select 
+                          value={newDeptHead} 
+                          onChange={e => setNewDeptHead(e.target.value)} 
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                        >
+                          <option value="">Choose Head...</option>
+                          {users.map(u => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button 
+                        type="submit" 
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                      >
+                        Create Department
+                      </button>
+                    </form>
                   </div>
                 </div>
               )}
 
               {activeOrgTab === 'categories' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="space-y-3 lg:col-span-2">
                     <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-2">Category Schemas</h3>
                     {categories.map(c => (
                       <div key={c.id} className="p-4 bg-slate-850/60 border border-slate-800 rounded-xl">
@@ -670,12 +808,38 @@ export default function App() {
                       </div>
                     ))}
                   </div>
+
                   <div className="bg-slate-800/20 border border-slate-800 p-6 rounded-xl">
-                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Schema Configurator</h3>
-                    <div className="p-4 bg-indigo-950/20 border border-indigo-900/30 rounded-xl text-xs text-indigo-300">
-                      <p className="font-extrabold uppercase text-[10px] mb-1">Dynamic Field Configurations</p>
-                      Add warranty specifications, serial tags, or license attributes custom schemas per asset category using dynamic JSON inputs.
-                    </div>
+                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Create Category</h3>
+                    <form onSubmit={handleCreateCategory} className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Category Name</label>
+                        <input 
+                          type="text" 
+                          required 
+                          value={newCatName} 
+                          onChange={e => setNewCatName(e.target.value)} 
+                          placeholder="e.g. Office Stationery" 
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Description</label>
+                        <textarea 
+                          required 
+                          value={newCatDesc} 
+                          onChange={e => setNewCatDesc(e.target.value)} 
+                          placeholder="Category details..." 
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 h-16"
+                        />
+                      </div>
+                      <button 
+                        type="submit" 
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                      >
+                        Define Category
+                      </button>
+                    </form>
                   </div>
                 </div>
               )}
@@ -839,7 +1003,12 @@ export default function App() {
                         }).map(a => (
                           <tr 
                             key={a.id} 
-                            onClick={() => setSelectedAsset(a)}
+                            onClick={() => {
+                              setSelectedAsset(a);
+                              setEditLocation(a.location);
+                              setEditCondition(a.condition);
+                              setEditCost(a.cost.toString());
+                            }}
                             className="hover:bg-slate-800/20 cursor-pointer transition-colors"
                           >
                             <td className="p-3 font-mono font-bold text-indigo-400">{a.tag}</td>
@@ -862,9 +1031,9 @@ export default function App() {
               </div>
 
               {selectedAsset && (
-                <div className="fixed inset-y-0 right-0 w-96 bg-slate-850 border-l border-slate-700 shadow-2xl p-6 z-50 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div className="fixed inset-y-0 right-0 w-96 bg-slate-850 border-l border-slate-700 shadow-2xl p-6 z-50 flex flex-col justify-between overflow-y-auto">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                       <div>
                         <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest block font-mono">{selectedAsset.tag}</span>
                         <h4 className="text-sm font-black text-white mt-1">{selectedAsset.name}</h4>
@@ -878,7 +1047,51 @@ export default function App() {
                         <p className="text-slate-200">Date: <span className="font-bold">{selectedAsset.acquisitionDate}</span></p>
                         <p className="text-slate-200 mt-0.5">Value: <span className="font-bold">${selectedAsset.cost}</span></p>
                       </div>
-                      <div>
+
+                      <div className="pt-4 border-t border-slate-800">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-3">Edit Asset Configuration</span>
+                        <form onSubmit={handleUpdateAssetDetails} className="space-y-3">
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-1">Update Location</label>
+                            <input 
+                              type="text" 
+                              value={editLocation} 
+                              onChange={e => setEditLocation(e.target.value)} 
+                              className="w-full bg-slate-900 border border-slate-750 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-1">Condition Status</label>
+                            <select 
+                              value={editCondition} 
+                              onChange={e => setEditCondition(e.target.value)} 
+                              className="w-full bg-slate-900 border border-slate-750 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-500"
+                            >
+                              <option value="Excellent">Excellent</option>
+                              <option value="Good">Good</option>
+                              <option value="Fair">Fair</option>
+                              <option value="Poor">Poor</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-1">Valuation Cost ($)</label>
+                            <input 
+                              type="number" 
+                              value={editCost} 
+                              onChange={e => setEditCost(e.target.value)} 
+                              className="w-full bg-slate-900 border border-slate-750 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                          <button 
+                            type="submit" 
+                            className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 rounded-lg text-[11px] tracking-wide transition-colors"
+                          >
+                            Save Details
+                          </button>
+                        </form>
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-800">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Active Allocation History</span>
                         {allocations.filter(al => al.assetId === selectedAsset.id).length > 0 ? (
                           <div className="space-y-2 mt-1.5">
@@ -895,7 +1108,7 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedAsset(null)} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-lg text-xs tracking-wide border border-slate-750 transition-colors">Dismiss Drawer</button>
+                  <button onClick={() => setSelectedAsset(null)} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-lg text-xs tracking-wide border border-slate-750 transition-colors mt-6">Dismiss Drawer</button>
                 </div>
               )}
             </div>
@@ -1190,19 +1403,32 @@ export default function App() {
                                 <p className="text-xs font-bold text-slate-200">{assetItem ? assetItem.name : ''}</p>
                                 <p className="text-[11px] text-slate-400 font-medium">{ticket.description}</p>
                                 
-                                <div className="flex justify-end gap-1.5 pt-2 border-t border-slate-800 text-[10px] font-bold">
+                                <div className="pt-2 border-t border-slate-800 space-y-2">
                                   {col === 'PENDING' && (
-                                    <button 
-                                      onClick={() => handleUpdateMaintenanceStatus(ticket.id, 'APPROVED')} 
-                                      className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded"
-                                    >
-                                      Approve
-                                    </button>
+                                    <div className="space-y-1.5 text-[10px] font-bold">
+                                      <label className="block text-[8px] uppercase tracking-wider text-slate-400">Assign Technician</label>
+                                      <select 
+                                        value={techAssignment[ticket.id] || ''} 
+                                        onChange={e => handleAssignTechnician(ticket.id, e.target.value)} 
+                                        className="w-full bg-slate-900 border border-slate-750 rounded px-2 py-1 text-[10px] text-white"
+                                      >
+                                        <option value="">Select Tech...</option>
+                                        {users.map(u => (
+                                          <option key={u.id} value={u.id}>{u.name}</option>
+                                        ))}
+                                      </select>
+                                      <button 
+                                        onClick={() => handleUpdateMaintenanceStatus(ticket.id, 'APPROVED')} 
+                                        className="w-full mt-1 bg-indigo-600 hover:bg-indigo-500 text-white py-1 rounded"
+                                      >
+                                        Approve Ticket
+                                      </button>
+                                    </div>
                                   )}
                                   {col === 'APPROVED' && (
                                     <button 
                                       onClick={() => handleUpdateMaintenanceStatus(ticket.id, 'RESOLVED')} 
-                                      className="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded"
+                                      className="w-full bg-green-600 hover:bg-green-500 text-white py-1 rounded text-[10px] font-bold"
                                     >
                                       Resolve Fault
                                     </button>
@@ -1341,8 +1567,8 @@ export default function App() {
                   </div>
                   
                   <div className="pt-4 border-t border-slate-800 space-y-2">
-                    <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide transition-colors">Export PDF Report</button>
-                    <button className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-lg text-xs tracking-wide border border-slate-750 transition-colors">Export CSV Data</button>
+                    <button onClick={() => triggerToast("Exporting PDF Report Document...")} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide transition-colors">Export PDF Report</button>
+                    <button onClick={() => triggerToast("Exporting Excel Spreadsheet Data...")} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-lg text-xs tracking-wide border border-slate-750 transition-colors">Export CSV Data</button>
                   </div>
                 </div>
 
