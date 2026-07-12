@@ -23,6 +23,7 @@ export const INITIAL_CATEGORIES = [
   { id: 3, name: 'Vehicles', description: 'Fleet cars, delivery vans, and company transport', schema: { licensePlate: 'string', engineType: 'string', fuelType: 'string', seatingCapacity: 'number' } },
   { id: 4, name: 'AV Equipment', description: 'Projectors, cameras, microphones, and display systems', schema: { resolution: 'string', connectivity: 'string', lumens: 'number' } },
   { id: 5, name: 'Networking', description: 'Routers, switches, access points, and cabling infrastructure', schema: { portCount: 'number', speedGbps: 'number', managedSwitch: 'boolean' } },
+  { id: 6, name: 'IoT Hardware', description: 'Microcontrollers, sensors, relays, and other modules', schema: { type: 'string', voltage: 'string', protocol: 'string' } },
 ];
 
 export const INITIAL_ASSETS = [
@@ -44,11 +45,12 @@ const categoriesList = [
   { id: 2, prefix: 'FN', names: ['Steelcase Gesture Chair', 'Task Chair Basic', 'Whiteboard Mobile', 'Executive Desk Oak'] },
   { id: 3, prefix: 'VH', names: ['Ford Transit Van', 'Toyota Innova Crysta', 'Tesla Model 3'] },
   { id: 4, prefix: 'AV', names: ['Epson EB-L615U Projector', 'Sony Alpha 7 IV', 'Shure SM7B Microphone'] },
-  { id: 5, prefix: 'NW', names: ['Aruba Access Point 303', 'Palo Alto PA-3220', 'Fortinet FortiGate 60F'] }
+  { id: 5, prefix: 'NW', names: ['Aruba Access Point 303', 'Palo Alto PA-3220', 'Fortinet FortiGate 60F'] },
+  { id: 6, prefix: 'IOT', names: ['ESP32 DevKit', 'Raspberry Pi Pico', 'Arduino Uno R3', 'DHT22 Temp Sensor', 'HC-SR04 Ultrasonic Sensor', '5V 2-Channel Relay Module', 'SG90 Servo Motor', 'NEMA 17 Stepper Motor', 'L298N Motor Driver', 'Jumper Wires Pack', 'Breadboard Module'] }
 ];
 const statuses = ['AVAILABLE', 'ALLOCATED', 'RESERVED', 'UNDER_MAINTENANCE', 'LOST', 'RETIRED', 'DISPOSED'];
 
-for (let i = 11; i <= 85; i++) {
+for (let i = 11; i <= 139; i++) {
   const cat = categoriesList[i % categoriesList.length];
   const nameTemplate = cat.names[i % cat.names.length];
   const name = `${nameTemplate} #${i}`;

@@ -62,7 +62,8 @@ def seed_db():
         {"id": 2, "name": "Servers", "description": "Rack mounted servers", "schema": {"cores": "number", "memory": "string"}},
         {"id": 3, "name": "Conference Rooms", "description": "Meeting rooms", "schema": {"capacity": "number"}},
         {"id": 4, "name": "Networking", "description": "Routers and switches", "schema": {"ports": "number"}},
-        {"id": 5, "name": "Furniture", "description": "Office desks and chairs", "schema": {"type": "string"}}
+        {"id": 5, "name": "Furniture", "description": "Office desks and chairs", "schema": {"type": "string"}},
+        {"id": 6, "name": "IoT Hardware", "description": "Microcontrollers, sensors, relays, and other modules", "schema": {"type": "string", "voltage": "string", "protocol": "string"}}
     ]
     
     cat_map = {}
@@ -97,10 +98,11 @@ def seed_db():
         {"cat_id": 2, "prefix": "SRV", "names": ["Dell PowerEdge R640", "Cisco UCS C240", "Supermicro FatTwin", "HP ProLiant DL380"]},
         {"cat_id": 3, "prefix": "RM", "names": ["Meeting Room 101", "Huddle Room 202", "Focus Room 104", "Training Room C"]},
         {"cat_id": 4, "prefix": "NET", "names": ["Aruba Access Point 303", "Palo Alto PA-3220", "Fortinet FortiGate 60F", "Cisco Catalyst 9300"]},
-        {"cat_id": 5, "prefix": "FURN", "names": ["Steelcase Gesture Chair", "Task Chair Basic", "Whiteboard Mobile", "Executive Desk Oak"]}
+        {"cat_id": 5, "prefix": "FURN", "names": ["Steelcase Gesture Chair", "Task Chair Basic", "Whiteboard Mobile", "Executive Desk Oak"]},
+        {"cat_id": 6, "prefix": "IOT", "names": ["ESP32 DevKit", "Raspberry Pi Pico", "Arduino Uno R3", "DHT22 Temp Sensor", "HC-SR04 Ultrasonic Sensor", "5V 2-Channel Relay Module", "SG90 Servo Motor", "NEMA 17 Stepper Motor", "L298N Motor Driver", "Jumper Wires Pack", "Breadboard Module"]}
     ]
     
-    for i in range(13, 90):
+    for i in range(13, 140):
         cat_info = categories_list[(i % len(categories_list))]
         cat_id = cat_info["cat_id"]
         prefix = cat_info["prefix"]
@@ -121,6 +123,8 @@ def seed_db():
             cost = 15000.00 + (i * 500) % 10000
         elif cat_id == 4:
             cost = 800.00 + (i * 50) % 3000
+        elif cat_id == 6:
+            cost = 10.00 + (i * 2) % 150
         else:
             cost = 150.00 + (i * 10) % 600
 
@@ -135,6 +139,12 @@ def seed_db():
             attrs = {"ports": 12}
         elif cat_id == 5:
             attrs = {"type": "Office Fixture"}
+        elif cat_id == 6:
+            attrs = {
+                "type": "Microcontroller" if "Pico" in name_template or "ESP32" in name_template or "Arduino" in name_template else "Sensor" if "Sensor" in name_template else "Switch" if "Switch" in name_template else "Relay" if "Relay" in name_template else "Motor" if "Motor" in name_template else "Driver" if "Driver" in name_template else "Wires" if "Wires" in name_template else "Breadboard",
+                "voltage": "3.3V" if "Pico" in name_template or "ESP32" in name_template or "DHT22" in name_template else "5V",
+                "protocol": "I2C" if "Sensor" in name_template else "GPIO"
+            }
             
         assets_data.append({
             "id": i,
