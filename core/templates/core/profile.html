@@ -9,7 +9,7 @@
     <div class="dashboard-container" style="max-width: 800px;">
         <h2>User Profile</h2>
         
-        <div class="kpi-grid" style="grid-template-cols: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 2rem;">
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 2rem;">
             <div class="kpi-card">
                 <span>Username</span>
                 <h3 style="font-size: 1.25rem; font-weight: 700; margin-top: 0.5rem; word-break: break-all;">{{ request.user.username }}</h3>
@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        <div style="margin-top: 2.5rem; border-t: 1px solid #e2e8f0; padding-top: 1.5rem;">
+        <div style="margin-top: 2.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem;">
             <a href="{% url 'dashboard' %}">&larr; Back to Dashboard</a>
         </div>
     </div>
