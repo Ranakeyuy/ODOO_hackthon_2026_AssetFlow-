@@ -87,22 +87,25 @@ class Asset(models.Model):
     attributes = models.JSONField(default=dict, blank=True)
 
     def save(self, *args, **kwargs):
-        if not self.tag:
-            last_asset = Asset.objects.order_by('-id').first()
-            last_id = last_asset.id if last_asset else 0
-            self.tag = f"AF-{(last_id + 1):04d}"
-        
         is_new = not self.pk
-        old_status = None
-        if not is_new:
-            old_status = Asset.objects.get(pk=self.pk).status
+        with transaction.atomic():
+            if not self.tag:
+                last_asset = Asset.objects.select_for_update().order_by('-id').first()
+                last_id = last_asset.id if last_asset else 0
+                self.tag = f"AF-{(last_id + 1):04d}"
             
-        super().save(*args, **kwargs)
-        
-        if not is_new and old_status != self.status:
-            SystemLog.objects.create(
-                action=f"Asset {self.tag} status shifted from {old_status} to {self.status}."
-            )
+            old_status = None
+            if not is_new:
+                old_status = Asset.objects.get(pk=self.pk).status
+                
+            super().save(*args, **kwargs)
+            
+            if not is_new and old_status != self.status:
+                SystemLog.objects.create(
+                    target_asset=self,
+                    action_type="STATE_CHANGE",
+                    action=f"Asset {self.tag} status shifted from {old_status} to {self.status}."
+                )
 
     def __str__(self):
         return f"{self.name} ({self.tag})"
@@ -143,12 +146,16 @@ class AssetAllocation(models.Model):
                 self.asset.status = Asset.ALLOCATED
                 self.asset.save()
                 SystemLog.objects.create(
+                    target_asset=self.asset,
+                    action_type="ALLOCATION_OPEN",
                     action=f"Asset {self.asset.tag} allocated to {self.user.username}."
                 )
             elif self.actual_return_date is not None:
                 self.asset.status = Asset.AVAILABLE
                 self.asset.save()
                 SystemLog.objects.create(
+                    target_asset=self.asset,
+                    action_type="ALLOCATION_CLOSE",
                     action=f"Asset {self.asset.tag} returned by {self.user.username}."
                 )
 
@@ -171,6 +178,7 @@ class ResourceBooking(models.Model):
         if self.start_time and self.end_time:
             if self.start_time >= self.end_time:
                 raise ValidationError("Start time must be before end time.")
+            
             overlapping = ResourceBooking.objects.filter(
                 resource=self.resource,
                 is_cancelled=False,
@@ -183,8 +191,22 @@ class ResourceBooking(models.Model):
                 raise ValidationError("This booking overlaps with an existing reservation.")
 
     def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
+        with transaction.atomic():
+            if self.start_time and self.end_time:
+                Asset.objects.select_for_update().get(pk=self.resource.pk)
+                overlapping = ResourceBooking.objects.select_for_update().filter(
+                    resource=self.resource,
+                    is_cancelled=False,
+                    start_time__lt=self.end_time,
+                    end_time__gt=self.start_time
+                )
+                if self.pk:
+                    overlapping = overlapping.exclude(pk=self.pk)
+                if overlapping.exists():
+                    raise ValidationError("This booking overlaps with an existing reservation (checked under lock).")
+            
+            self.clean()
+            super().save(*args, **kwargs)
 
 class TransferRequest(models.Model):
     REQUESTED = 'REQUESTED'
@@ -227,7 +249,7 @@ class TransferRequest(models.Model):
     def approve(self, approved_by=None):
         if self.status == self.REQUESTED:
             with transaction.atomic():
-                active_alloc = AssetAllocation.objects.filter(
+                active_alloc = AssetAllocation.objects.select_for_update().filter(
                     asset=self.asset,
                     actual_return_date__isnull=True
                 ).first()
@@ -249,6 +271,8 @@ class TransferRequest(models.Model):
                 
                 SystemLog.objects.create(
                     actor=approved_by,
+                    target_asset=self.asset,
+                    action_type="TRANSFER_APPROVAL",
                     action=f"Approved transfer request of asset {self.asset.tag} from {self.from_user.username} to {self.to_user.username}."
                 )
 
@@ -290,14 +314,25 @@ class MaintenanceRequest(models.Model):
         if self.pk:
             old_status = MaintenanceRequest.objects.get(pk=self.pk).status
         
-        super().save(*args, **kwargs)
-        
-        if self.status == self.APPROVED and old_status != self.APPROVED:
-            self.asset.status = Asset.UNDER_MAINTENANCE
-            self.asset.save()
-        elif self.status == self.RESOLVED and old_status != self.RESOLVED:
-            self.asset.status = Asset.AVAILABLE
-            self.asset.save()
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            
+            if self.status == self.APPROVED and old_status != self.APPROVED:
+                self.asset.status = Asset.UNDER_MAINTENANCE
+                self.asset.save()
+                SystemLog.objects.create(
+                    target_asset=self.asset,
+                    action_type="MAINTENANCE_START",
+                    action=f"Asset {self.asset.tag} status changed to Under Maintenance."
+                )
+            elif self.status == self.RESOLVED and old_status != self.RESOLVED:
+                self.asset.status = Asset.AVAILABLE
+                self.asset.save()
+                SystemLog.objects.create(
+                    target_asset=self.asset,
+                    action_type="MAINTENANCE_END",
+                    action=f"Asset {self.asset.tag} status restored to Available."
+                )
 
 class AuditCycle(models.Model):
     title = models.CharField(max_length=200)
@@ -328,7 +363,8 @@ class AuditCycle(models.Model):
                 for asset_id in asset_ids:
                     SystemLog.objects.create(
                         actor=actor,
-                        action=f"Asset ID {asset_id} marked as LOST due to missing audit entry."
+                        action_type="AUDIT_LOST",
+                        action=f"Asset ID {asset_id} marked as LOST due to missing audit entry during cycle closure."
                     )
 
 class AuditEntry(models.Model):
@@ -364,10 +400,26 @@ class AuditEntry(models.Model):
 class SystemLog(models.Model):
     actor = models.ForeignKey(
         User,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='system_logs'
     )
+    target_asset = models.ForeignKey(
+        Asset,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='system_logs'
+    )
+    action_type = models.CharField(max_length=100)
     action = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError("Logs are immutable and cannot be updated.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Logs are immutable and cannot be deleted.")

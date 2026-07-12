@@ -14,6 +14,13 @@ class CustomUserCreationForm(UserCreationForm):
             user.save()
         return user
 
+    def clean(self):
+        cleaned_data = super().clean()
+        role = cleaned_data.get('role')
+        if role and role != User.EMPLOYEE:
+            raise forms.ValidationError("Public registration is restricted to the Employee role only.")
+        return cleaned_data
+
 class AssetRegistrationForm(forms.ModelForm):
     class Meta:
         model = Asset
