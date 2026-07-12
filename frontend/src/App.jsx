@@ -1,37 +1,21 @@
 import React, { useState } from 'react';
-import {
-  LayoutDashboard,
-  Network,
-  FolderOpen,
-  UserCheck,
-  Calendar,
-  Wrench,
-  AlertCircle,
-  Bell,
-  Search,
-  Plus,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ArrowRightLeft,
-  ChevronRight,
-  Sliders,
-  Check,
-  UserPlus
-} from 'lucide-react';
-import {
-  INITIAL_USERS,
-  INITIAL_DEPARTMENTS,
-  INITIAL_CATEGORIES,
-  INITIAL_ASSETS,
-  INITIAL_ALLOCATIONS,
-  INITIAL_BOOKINGS,
-  INITIAL_TRANSFERS,
-  INITIAL_MAINTENANCE
+import { 
+  INITIAL_USERS, 
+  INITIAL_DEPARTMENTS, 
+  INITIAL_CATEGORIES, 
+  INITIAL_ASSETS, 
+  INITIAL_ALLOCATIONS, 
+  INITIAL_BOOKINGS, 
+  INITIAL_TRANSFERS, 
+  INITIAL_MAINTENANCE, 
+  INITIAL_AUDIT_CYCLES, 
+  INITIAL_AUDIT_ENTRIES, 
+  INITIAL_SYSTEM_LOGS 
 } from './mockData';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [currentUser, setCurrentUser] = useState(INITIAL_USERS[0]); 
+  const [currentView, setCurrentView] = useState('dashboard'); 
   const [users, setUsers] = useState(INITIAL_USERS);
   const [departments, setDepartments] = useState(INITIAL_DEPARTMENTS);
   const [categories, setCategories] = useState(INITIAL_CATEGORIES);
@@ -40,1377 +24,1388 @@ export default function App() {
   const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
   const [transfers, setTransfers] = useState(INITIAL_TRANSFERS);
   const [maintenance, setMaintenance] = useState(INITIAL_MAINTENANCE);
-  
+  const [auditCycles, setAuditCycles] = useState(INITIAL_AUDIT_CYCLES);
+  const [auditEntries, setAuditEntries] = useState(INITIAL_AUDIT_ENTRIES);
+  const [logs, setLogs] = useState(INITIAL_SYSTEM_LOGS);
+
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState(null); 
+  const [activeOrgTab, setActiveOrgTab] = useState('departments'); 
 
-  const [assetForm, setAssetForm] = useState({ tag: '', name: '', serialNumber: '', categoryId: '', location: '', is_shared: false, ram: '', storage: '', cores: '', memory: '', capacity: '' });
-  const [allocForm, setAllocForm] = useState({ assetId: '', userId: '', expectedReturnDate: '' });
-  const [bookingForm, setBookingForm] = useState({ resourceId: '', userId: '', startTime: '', endTime: '' });
-  const [maintenanceForm, setMaintenanceForm] = useState({ assetId: '', requestedById: '', description: '' });
-  const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
-  const [deptForm, setDeptForm] = useState({ name: '', parentId: '', headId: '' });
-  const [userForm, setUserForm] = useState({ username: '', name: '', role: 'EMPLOYEE', email: '' });
+  const [authMode, setAuthMode] = useState('login');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPass, setSignupPass] = useState('');
+  const [signupDept, setSignupDept] = useState('1');
 
-  const [assetFilter, setAssetFilter] = useState({ q: '', status: '', categoryId: '', location: '' });
+  const [regName, setRegName] = useState('');
+  const [regCat, setRegCat] = useState('1');
+  const [regSerial, setRegSerial] = useState('');
+  const [regLocation, setRegLocation] = useState('');
+  const [regShared, setRegShared] = useState(false);
+  const [regCost, setRegCost] = useState('');
 
-  const [allocError, setAllocError] = useState('');
-  const [bookingError, setBookingError] = useState('');
+  const [dirSearch, setDirSearch] = useState('');
+  const [dirStatus, setDirStatus] = useState('ALL');
 
-  const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const [allocAsset, setAllocAsset] = useState('');
+  const [allocUser, setAllocUser] = useState('4');
+  const [allocReturn, setAllocReturn] = useState('');
+  const [allocConflictMsg, setAllocConflictMsg] = useState(null);
 
-  const overdueReturns = allocations.filter(a => {
-    return !a.actualReturnDate && a.expectedReturnDate && a.expectedReturnDate < todayStr;
-  }).map(a => {
-    const asset = assets.find(ast => ast.id === a.assetId);
-    const user = users.find(u => u.id === a.userId);
-    return {
-      ...a,
-      assetName: asset ? asset.name : 'Unknown Asset',
-      assetTag: asset ? asset.tag : 'N/A',
-      borrowerName: user ? user.name : 'Unknown User'
+  const [returnAssetId, setReturnAssetId] = useState('');
+  const [returnNotes, setReturnNotes] = useState('');
+
+  const [bookResource, setBookResource] = useState('3');
+  const [bookStart, setBookStart] = useState('');
+  const [bookEnd, setBookEnd] = useState('');
+  const [bookError, setBookError] = useState(null);
+
+  const [maintAsset, setMaintAsset] = useState('1');
+  const [maintDesc, setMaintDesc] = useState('');
+  const [maintPriority, setMaintPriority] = useState('Medium');
+
+  const [auditPlanLocation, setAuditPlanLocation] = useState('');
+  const [auditPlanAuditor, setAuditPlanAuditor] = useState('2');
+  const [auditReport, setAuditReport] = useState(null);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const foundUser = users.find(u => u.email === loginEmail) || users[0];
+    setCurrentUser(foundUser);
+    setCurrentView('dashboard');
+  };
+
+  const handleSignup = (e) => {
+    e.preventDefault();
+    const newUser = {
+      id: users.length + 1,
+      username: signupEmail.split('@')[0],
+      name: signupName,
+      role: 'EMPLOYEE',
+      email: signupEmail,
+      departmentId: parseInt(signupDept)
     };
-  });
-
-  const availableAssetsCount = assets.filter(a => a.status === 'AVAILABLE').count ? assets.filter(a => a.status === 'AVAILABLE').length : assets.filter(a => a.status === 'AVAILABLE').length;
-  const allocatedAssetsCount = assets.filter(a => a.status === 'ALLOCATED').length;
-  const activeBookingsCount = bookings.filter(b => new Date(b.endTime) > now).length;
-  const pendingTransfersCount = transfers.filter(t => t.status === 'PENDING').length;
-  const maintenanceTodayCount = maintenance.filter(m => m.status === 'PENDING' || m.status === 'APPROVED').length;
-
-  const notifications = [
-    ...overdueReturns.map(o => ({
-      id: `overdue-${o.id}`,
-      type: 'error',
-      message: `Overdue Return: ${o.assetName} (${o.assetTag}) held by ${o.borrowerName} was due on ${o.expectedReturnDate}.`
-    })),
-    ...transfers.filter(t => t.status === 'PENDING').map(t => {
-      const asset = assets.find(a => a.id === t.assetId);
-      return {
-        id: `transfer-${t.id}`,
-        type: 'info',
-        message: `Transfer Request: ${asset ? asset.name : 'Asset'} from ${users.find(u => u.id === t.fromUserId)?.name} to ${users.find(u => u.id === t.toUserId)?.name}.`
-      };
-    }),
-    ...maintenance.filter(m => m.status === 'PENDING').map(m => {
-      const asset = assets.find(a => a.id === m.assetId);
-      return {
-        id: `maint-${m.id}`,
-        type: 'warning',
-        message: `Maintenance Request: ${asset ? asset.name : 'Asset'} needs attention.`
-      };
-    })
-  ];
-
-  const handleApproveTransfer = (transferId) => {
-    setTransfers(prev => prev.map(t => {
-      if (t.id === transferId && t.status === 'PENDING') {
-        setAllocations(allocs => allocs.map(a => {
-          if (a.assetId === t.assetId && a.userId === t.fromUserId && !a.actualReturnDate) {
-            return { ...a, actualReturnDate: todayStr };
-          }
-          return a;
-        }));
-        const newAlloc = {
-          id: allocations.length + 1,
-          assetId: t.assetId,
-          userId: t.toUserId,
-          checkedOutAt: new Date().toISOString(),
-          expectedReturnDate: null,
-          actualReturnDate: null
-        };
-        setAllocations(allocs => [...allocs, newAlloc]);
-        setAssets(prevAssets => prevAssets.map(a => {
-          if (a.id === t.assetId) {
-            return { ...a, status: 'ALLOCATED' };
-          }
-          return a;
-        }));
-        return { ...t, status: 'APPROVED' };
-      }
-      return t;
-    }));
-  };
-
-  const handleRejectTransfer = (transferId) => {
-    setTransfers(prev => prev.map(t => {
-      if (t.id === transferId && t.status === 'PENDING') {
-        return { ...t, status: 'REJECTED' };
-      }
-      return t;
-    }));
-  };
-
-  const handleApproveMaintenance = (mId) => {
-    setMaintenance(prev => prev.map(m => {
-      if (m.id === mId && m.status === 'PENDING') {
-        setAssets(prevAssets => prevAssets.map(a => a.id === m.assetId ? { ...a, status: 'UNDER_MAINTENANCE' } : a));
-        return { ...m, status: 'APPROVED' };
-      }
-      return m;
-    }));
-  };
-
-  const handleResolveMaintenance = (mId) => {
-    setMaintenance(prev => prev.map(m => {
-      if (m.id === mId && m.status === 'APPROVED') {
-        setAssets(prevAssets => prevAssets.map(a => a.id === m.assetId ? { ...a, status: 'AVAILABLE' } : a));
-        return { ...m, status: 'RESOLVED' };
-      }
-      return m;
-    }));
+    setUsers([...users, newUser]);
+    setCurrentUser(newUser);
+    setCurrentView('dashboard');
   };
 
   const handleRegisterAsset = (e) => {
     e.preventDefault();
-    if (!assetForm.tag || !assetForm.name || !assetForm.categoryId) return;
-    
-    let schemaAttrs = {};
-    const catId = parseInt(assetForm.categoryId);
-    if (catId === 1) {
-      schemaAttrs = { ram: assetForm.ram, storage: assetForm.storage };
-    } else if (catId === 2) {
-      schemaAttrs = { cores: parseInt(assetForm.cores) || 0, memory: assetForm.memory };
-    } else if (catId === 3) {
-      schemaAttrs = { capacity: parseInt(assetForm.capacity) || 0 };
-    }
-
+    const nextTag = `AF-${(assets.length + 1).toString().padStart(4, '0')}`;
     const newAsset = {
       id: assets.length + 1,
-      tag: assetForm.tag,
-      name: assetForm.name,
-      serialNumber: assetForm.serialNumber,
-      categoryId: catId,
+      tag: nextTag,
+      name: regName,
+      serialNumber: regSerial,
+      categoryId: parseInt(regCat),
       status: 'AVAILABLE',
-      location: assetForm.location,
-      is_shared: assetForm.is_shared,
-      attributes: schemaAttrs
+      location: regLocation,
+      is_shared: regShared,
+      acquisitionDate: new Date().toISOString().split('T')[0],
+      cost: parseFloat(regCost) || 500,
+      condition: 'Excellent',
+      attributes: {}
     };
-    
     setAssets([...assets, newAsset]);
-    setAssetForm({ tag: '', name: '', serialNumber: '', categoryId: '', location: '', is_shared: false, ram: '', storage: '', cores: '', memory: '', capacity: '' });
+    setLogs([{
+      id: logs.length + 1,
+      timestamp: new Date().toISOString(),
+      username: currentUser.username,
+      targetTag: nextTag,
+      actionType: 'REGISTER_ASSET',
+      action: `Registered new asset ${newAsset.name} under tag ${nextTag}.`
+    }, ...logs]);
+    setRegName('');
+    setRegSerial('');
+    setRegLocation('');
+    setRegCost('');
+  };
+
+  const handleAllocationAssetChange = (assetId) => {
+    setAllocAsset(assetId);
+    if (!assetId) {
+      setAllocConflictMsg(null);
+      return;
+    }
+    const target = assets.find(a => a.id === parseInt(assetId));
+    if (target && target.status !== 'AVAILABLE') {
+      const activeAlloc = allocations.find(al => al.assetId === target.id && al.actualReturnDate === null);
+      let holder = 'Unknown';
+      if (activeAlloc) {
+        const u = users.find(usr => usr.id === activeAlloc.userId);
+        if (u) holder = u.name;
+      }
+      setAllocConflictMsg(`Currently held by ${holder}`);
+    } else {
+      setAllocConflictMsg(null);
+    }
   };
 
   const handleCreateAllocation = (e) => {
     e.preventDefault();
-    setAllocError('');
-    const aId = parseInt(allocForm.assetId);
-    const uId = parseInt(allocForm.userId);
-    if (!aId || !uId) return;
-
-    const assetObj = assets.find(a => a.id === aId);
-    if (!assetObj) return;
-
-    if (assetObj.status !== 'AVAILABLE') {
-      const activeAlloc = allocations.find(a => a.assetId === aId && !a.actualReturnDate);
-      const holder = users.find(u => u.id === activeAlloc?.userId);
-      const holderName = holder ? holder.name : 'Unknown';
-      setAllocError(`Asset is not available. Currently held by ${holderName}.`);
-      return;
-    }
+    const targetAsset = assets.find(a => a.id === parseInt(allocAsset));
+    if (!targetAsset || targetAsset.status !== 'AVAILABLE') return;
 
     const newAlloc = {
       id: allocations.length + 1,
-      assetId: aId,
-      userId: uId,
+      assetId: targetAsset.id,
+      userId: parseInt(allocUser),
       checkedOutAt: new Date().toISOString(),
-      expectedReturnDate: allocForm.expectedReturnDate || null,
+      expectedReturnDate: allocReturn,
       actualReturnDate: null
     };
 
     setAllocations([...allocations, newAlloc]);
-    setAssets(prev => prev.map(a => a.id === aId ? { ...a, status: 'ALLOCATED' } : a));
-    setAllocForm({ assetId: '', userId: '', expectedReturnDate: '' });
+    setAssets(assets.map(a => a.id === targetAsset.id ? { ...a, status: 'ALLOCATED' } : a));
+    setLogs([{
+      id: logs.length + 1,
+      timestamp: new Date().toISOString(),
+      username: currentUser.username,
+      targetTag: targetAsset.tag,
+      actionType: 'ALLOCATE_ASSET',
+      action: `Allocated asset ${targetAsset.tag} to user ID ${allocUser}.`
+    }, ...logs]);
+    setAllocAsset('');
+  };
+
+  const handleInitiateTransfer = () => {
+    const targetAsset = assets.find(a => a.id === parseInt(allocAsset));
+    if (!targetAsset) return;
+
+    const activeAlloc = allocations.find(al => al.assetId === targetAsset.id && al.actualReturnDate === null);
+    if (!activeAlloc) return;
+
+    const newTransfer = {
+      id: transfers.length + 1,
+      assetId: targetAsset.id,
+      fromUserId: activeAlloc.userId,
+      toUserId: parseInt(allocUser),
+      requestedById: currentUser.id,
+      status: 'REQUESTED',
+      createdAt: new Date().toISOString()
+    };
+
+    setTransfers([...transfers, newTransfer]);
+    setLogs([{
+      id: logs.length + 1,
+      timestamp: new Date().toISOString(),
+      username: currentUser.username,
+      targetTag: targetAsset.tag,
+      actionType: 'TRANSFER_REQUEST',
+      action: `Requested transfer of asset ${targetAsset.tag} to user ID ${allocUser}.`
+    }, ...logs]);
+    setAllocAsset('');
+    setAllocConflictMsg(null);
+  };
+
+  const handleApproveTransfer = (transId) => {
+    const trans = transfers.find(t => t.id === transId);
+    if (!trans) return;
+
+    const activeAlloc = allocations.find(al => al.assetId === trans.assetId && al.actualReturnDate === null);
+    
+    setAllocations(allocations.map(al => al.id === activeAlloc.id ? { ...al, actualReturnDate: new Date().toISOString().split('T')[0] } : al).concat({
+      id: allocations.length + 1,
+      assetId: trans.assetId,
+      userId: trans.toUserId,
+      checkedOutAt: new Date().toISOString(),
+      expectedReturnDate: '',
+      actualReturnDate: null
+    }));
+
+    setTransfers(transfers.map(t => t.id === transId ? { ...t, status: 'APPROVED' } : t));
+    
+    const assetObj = assets.find(a => a.id === trans.assetId);
+    setLogs([{
+      id: logs.length + 1,
+      timestamp: new Date().toISOString(),
+      username: currentUser.username,
+      targetTag: assetObj ? assetObj.tag : `ID ${trans.assetId}`,
+      actionType: 'TRANSFER_APPROVED',
+      action: `Approved transfer request for asset ID ${trans.assetId}.`
+    }, ...logs]);
+  };
+
+  const handleProcessReturn = (e) => {
+    e.preventDefault();
+    const assetIdNum = parseInt(returnAssetId);
+    const activeAlloc = allocations.find(al => al.assetId === assetIdNum && al.actualReturnDate === null);
+    if (!activeAlloc) return;
+
+    setAllocations(allocations.map(al => al.id === activeAlloc.id ? { ...al, actualReturnDate: new Date().toISOString().split('T')[0] } : al));
+    setAssets(assets.map(a => a.id === assetIdNum ? { ...a, status: 'AVAILABLE' } : a));
+    
+    const assetObj = assets.find(a => a.id === assetIdNum);
+    setLogs([{
+      id: logs.length + 1,
+      timestamp: new Date().toISOString(),
+      username: currentUser.username,
+      targetTag: assetObj ? assetObj.tag : '',
+      actionType: 'RETURN_ASSET',
+      action: `Processed return of asset. Condition Notes: ${returnNotes}`
+    }, ...logs]);
+
+    setReturnAssetId('');
+    setReturnNotes('');
   };
 
   const handleCreateBooking = (e) => {
     e.preventDefault();
-    setBookingError('');
-    const resId = parseInt(bookingForm.resourceId);
-    const uId = parseInt(bookingForm.userId);
-    if (!resId || !uId || !bookingForm.startTime || !bookingForm.endTime) return;
-
-    const start = new Date(bookingForm.startTime);
-    const end = new Date(bookingForm.endTime);
-
+    const start = new Date(bookStart);
+    const end = new Date(bookEnd);
     if (start >= end) {
-      setBookingError('Start time must be before end time.');
+      setBookError("Start time must be before end time.");
       return;
     }
 
-    const overlap = bookings.some(b => {
-      if (b.resourceId !== resId) return false;
-      const bStart = new Date(b.startTime);
-      const bEnd = new Date(b.endTime);
-      return start < bEnd && end > bStart;
-    });
+    const overlap = bookings.find(b => 
+      b.resourceId === parseInt(bookResource) && 
+      !b.is_cancelled &&
+      new Date(b.startTime) < end && 
+      new Date(b.endTime) > start
+    );
 
     if (overlap) {
-      setBookingError('This time slot overlaps with an existing booking.');
+      setBookError("Time Slot Overlap Conflict: The resource is already reserved for this duration.");
       return;
     }
 
     const newBooking = {
       id: bookings.length + 1,
-      resourceId: resId,
-      userId: uId,
-      startTime: bookingForm.startTime,
-      endTime: bookingForm.endTime
+      resourceId: parseInt(bookResource),
+      userId: currentUser.id,
+      startTime: bookStart,
+      endTime: bookEnd,
+      is_cancelled: false
     };
 
     setBookings([...bookings, newBooking]);
-    setBookingForm({ resourceId: '', userId: '', startTime: '', endTime: '' });
+    setBookError(null);
+    setBookStart('');
+    setBookEnd('');
   };
 
-  const handleCreateMaintenance = (e) => {
+  const handleRaiseMaintenance = (e) => {
     e.preventDefault();
-    const aId = parseInt(maintenanceForm.assetId);
-    const uId = parseInt(maintenanceForm.requestedById);
-    if (!aId || !uId || !maintenanceForm.description) return;
-
-    const newRequest = {
+    const newMaint = {
       id: maintenance.length + 1,
-      assetId: aId,
-      requestedById: uId,
-      description: maintenanceForm.description,
+      assetId: parseInt(maintAsset),
+      requestedById: currentUser.id,
+      description: maintDesc,
       status: 'PENDING',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      priority: maintPriority
     };
 
-    setMaintenance([...maintenance, newRequest]);
-    setMaintenanceForm({ assetId: '', requestedById: '', description: '' });
+    setMaintenance([...maintenance, newMaint]);
+    setMaintDesc('');
   };
 
-  const handleCreateCategory = (e) => {
-    e.preventDefault();
-    if (!categoryForm.name) return;
-    const newCat = {
-      id: categories.length + 1,
-      name: categoryForm.name,
-      description: categoryForm.description,
-      schema: {}
-    };
-    setCategories([...categories, newCat]);
-    setCategoryForm({ name: '', description: '' });
+  const handleUpdateMaintenanceStatus = (id, newStatus) => {
+    setMaintenance(maintenance.map(m => m.id === id ? { ...m, status: newStatus } : m));
+    const ticket = maintenance.find(m => m.id === id);
+    if (!ticket) return;
+
+    if (newStatus === 'APPROVED') {
+      setAssets(assets.map(a => a.id === ticket.assetId ? { ...a, status: 'UNDER_MAINTENANCE' } : a));
+    } else if (newStatus === 'RESOLVED') {
+      setAssets(assets.map(a => a.id === ticket.assetId ? { ...a, status: 'AVAILABLE' } : a));
+    }
   };
 
-  const handleCreateDepartment = (e) => {
-    e.preventDefault();
-    if (!deptForm.name) return;
-    const newDept = {
-      id: departments.length + 1,
-      name: deptForm.name,
-      parentId: deptForm.parentId ? parseInt(deptForm.parentId) : null,
-      headId: deptForm.headId ? parseInt(deptForm.headId) : null
-    };
-    setDepartments([...departments, newDept]);
-    setDeptForm({ name: '', parentId: '', headId: '' });
+  const handleUpdateAuditStatus = (entryId, nextStatus) => {
+    setAuditEntries(auditEntries.map(e => e.id === entryId ? { ...e, status: nextStatus } : e));
   };
 
-  const handleCreateUser = (e) => {
-    e.preventDefault();
-    if (!userForm.username || !userForm.name) return;
-    const newUser = {
-      id: users.length + 1,
-      username: userForm.username,
-      name: userForm.name,
-      role: 'EMPLOYEE',
-      email: userForm.email
-    };
-    setUsers([...users, newUser]);
-    setUserForm({ username: '', name: '', role: 'EMPLOYEE', email: '' });
+  const handleCloseAuditCycle = (cycleId) => {
+    const cycleEntries = auditEntries.filter(e => e.cycleId === cycleId);
+    const missingAssetIds = cycleEntries.filter(e => e.status === 'MISSING').map(e => e.assetId);
+
+    setAssets(assets.map(a => missingAssetIds.includes(a.id) ? { ...a, status: 'LOST' } : a));
+    setAuditCycles(auditCycles.map(c => c.id === cycleId ? { ...c, isClosed: true } : c));
+
+    setAuditReport({
+      total: cycleEntries.length,
+      verified: cycleEntries.filter(e => e.status === 'VERIFIED').map(e => assets.find(a => a.id === e.assetId)?.name),
+      missing: cycleEntries.filter(e => e.status === 'MISSING').map(e => assets.find(a => a.id === e.assetId)?.name),
+      damaged: cycleEntries.filter(e => e.status === 'DAMAGED').map(e => assets.find(a => a.id === e.assetId)?.name)
+    });
   };
 
-  const filteredAssets = assets.filter(a => {
-    const matchesQ = !assetFilter.q ||
-      a.tag.toLowerCase().includes(assetFilter.q.toLowerCase()) ||
-      a.name.toLowerCase().includes(assetFilter.q.toLowerCase()) ||
-      (a.serialNumber && a.serialNumber.toLowerCase().includes(assetFilter.q.toLowerCase()));
-    
-    const matchesStatus = !assetFilter.status || a.status === assetFilter.status;
-    const matchesCategory = !assetFilter.categoryId || a.categoryId === parseInt(assetFilter.categoryId);
-    const matchesLocation = !assetFilter.location || a.location.toLowerCase().includes(assetFilter.location.toLowerCase());
+  const handlePromoteRole = (userId, nextRole) => {
+    setUsers(users.map(u => u.id === userId ? { ...u, role: nextRole } : u));
+  };
 
-    return matchesQ && matchesStatus && matchesCategory && matchesLocation;
-  });
+  const activeDeptObj = departments.find(d => d.id === currentUser.departmentId);
 
   return (
-    <div className="flex h-screen bg-slate-100 font-sans overflow-hidden">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
       
-      <div className="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
-        <div>
-          <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-lg tracking-wider shadow-lg shadow-indigo-500/20">
-              AF
+      <header className="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 flex items-center justify-between px-6">
+        <div className="flex items-center gap-3">
+          <span className="font-extrabold text-lg tracking-wider text-indigo-400">ASSETFLOW</span>
+          <span className="text-xs bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-400 font-semibold uppercase">Enterprise ERP</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <p className="text-xs font-semibold text-slate-400">Department</p>
+            <p className="text-xs font-extrabold text-indigo-300">{activeDeptObj ? activeDeptObj.name : 'Unassigned'}</p>
+          </div>
+
+          <div className="relative">
+            <button 
+              onClick={() => setNotificationOpen(!notificationOpen)} 
+              className="p-1.5 hover:bg-slate-800 rounded-lg relative text-slate-300 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+              <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-500 rounded-full"></span>
+            </button>
+            {notificationOpen && (
+              <div className="absolute right-0 mt-2.5 w-80 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 z-50">
+                <p className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-3">Live Notification Stream</p>
+                <div className="flex flex-col gap-2.5 max-h-60 overflow-y-auto">
+                  <div className="p-2 bg-red-950/40 border border-red-900/50 rounded-lg text-xs text-red-300">
+                    <span className="font-bold uppercase tracking-wide text-[10px] text-red-400 block mb-0.5">Warning</span>
+                    Asset AF-0001 check-in deadline has passed. Overdue.
+                  </div>
+                  <div className="p-2 bg-indigo-950/40 border border-indigo-900/50 rounded-lg text-xs text-indigo-300">
+                    <span className="font-bold uppercase tracking-wide text-[10px] text-indigo-400 block mb-0.5">Update</span>
+                    Transfer request initiated for MacBook Pro 16.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 border-l border-slate-800 pl-6">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-extrabold text-xs text-white">
+              {currentUser.name.split(' ').map(n=>n[0]).join('')}
             </div>
             <div>
-              <h1 className="font-extrabold text-white text-lg tracking-tight">AssetFlow</h1>
-              <span className="text-xs text-slate-500 font-semibold tracking-wider uppercase">Enterprise</span>
+              <p className="text-xs font-bold text-slate-200">{currentUser.name}</p>
+              <p className="text-[10px] text-indigo-400 font-extrabold uppercase tracking-wide">{currentUser.role.replace('_', ' ')}</p>
             </div>
-          </div>
-          <nav className="mt-6 px-4 space-y-1">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all ${
-                activeTab === 'dashboard'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
-                  : 'hover:bg-slate-800 hover:text-white'
-              }`}
+            <button 
+              onClick={() => {
+                setCurrentUser(null);
+                setCurrentView('auth');
+              }} 
+              className="text-xs hover:text-red-400 ml-2 text-slate-400 font-semibold"
             >
-              <LayoutDashboard size={18} />
-              Dashboard
+              Logout
             </button>
-            <button
-              onClick={() => setActiveTab('organization')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all ${
-                activeTab === 'organization'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
-                  : 'hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Network size={18} />
-              Organization Setup
-            </button>
-            <button
-              onClick={() => setActiveTab('directory')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all ${
-                activeTab === 'directory'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
-                  : 'hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <FolderOpen size={18} />
-              Asset Directory
-            </button>
-            <button
-              onClick={() => setActiveTab('allocation')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all ${
-                activeTab === 'allocation'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
-                  : 'hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <UserCheck size={18} />
-              Asset Allocation
-            </button>
-            <button
-              onClick={() => setActiveTab('booking')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all ${
-                activeTab === 'booking'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
-                  : 'hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Calendar size={18} />
-              Resource Booking
-            </button>
-            <button
-              onClick={() => setActiveTab('maintenance')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all ${
-                activeTab === 'maintenance'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
-                  : 'hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Wrench size={18} />
-              Maintenance Management
-            </button>
-          </nav>
-        </div>
-        <div className="p-4 border-t border-slate-800 bg-slate-950/40">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
-              KR
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">Keyur Rana</p>
-              <span className="text-xs text-slate-500 font-medium">Enterprise Admin</span>
-            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0 shadow-sm z-20">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-slate-800 capitalize tracking-tight">{activeTab.replace('-', ' ')}</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <button
-                onClick={() => setNotificationOpen(!notificationOpen)}
-                className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors relative"
-              >
-                <Bell size={20} />
-                {notifications.length > 0 && (
-                  <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center border border-white">
-                    {notifications.length}
-                  </span>
-                )}
-              </button>
+      <div className="flex-1 flex overflow-hidden">
+        
+        {currentUser && (
+          <aside className="w-64 border-r border-slate-800 bg-slate-900/60 p-4 flex flex-col gap-1.5 shrink-0">
+            <p className="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase px-3 mb-2">Main Navigation</p>
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+              { id: 'organization', label: 'Organization Setup', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', adminOnly: true },
+              { id: 'directory', label: 'Asset Directory', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+              { id: 'allocation', label: 'Asset Allocation', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+              { id: 'booking', label: 'Resource Booking', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+              { id: 'maintenance', label: 'Maintenance Management', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
+              { id: 'audit', label: 'Asset Audit Console', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+              { id: 'reports', label: 'Reports & Analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z' },
+              { id: 'logs', label: 'Audit Trail & Logs', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
+            ].map(item => {
+              if (item.adminOnly && currentUser.role !== 'ADMIN') return null;
+              const isActive = currentView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setCurrentView(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
+                >
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                  </svg>
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </aside>
+        )}
 
-              {notificationOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
-                  <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Feed Updates</span>
-                    <span className="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">
-                      {notifications.length} Issues
-                    </span>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
-                    {notifications.length === 0 ? (
-                      <p className="p-4 text-xs text-slate-500 text-center">No high-priority notifications.</p>
-                    ) : (
-                      notifications.map(n => (
-                        <div key={n.id} className="p-4 flex gap-3 hover:bg-slate-50 transition-colors">
-                          <AlertCircle size={16} className={`shrink-0 ${n.type === 'error' ? 'text-rose-500' : n.type === 'warning' ? 'text-amber-500' : 'text-indigo-500'}`} />
-                          <p className="text-xs text-slate-600 leading-relaxed">{n.message}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 border border-slate-200 rounded-full px-3 py-1.5 hover:bg-slate-50 transition-colors"
-              >
-                <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
-                  KR
-                </div>
-                <span className="text-sm font-semibold text-slate-700">keyurrana</span>
-              </button>
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 overflow-hidden">
-                  <div className="p-3 border-b border-slate-100 bg-slate-50">
-                    <p className="text-xs font-bold text-slate-700">Keyur Rana</p>
-                    <p className="text-[10px] text-slate-400 font-semibold uppercase">Admin Role</p>
-                  </div>
-                  <button
-                    onClick={() => { setUserMenuOpen(false); alert('Logout simulation'); }}
-                    className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
-                  >
-                    Logout Session
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+        <main className="flex-1 overflow-y-auto p-8">
           
-          {activeTab === 'dashboard' && (
-            <div className="space-y-8">
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle size={24} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Available Assets</span>
-                    <h3 className="text-2xl font-black text-slate-800 mt-1">{availableAssetsCount}</h3>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <UserCheck size={24} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Allocated Assets</span>
-                    <h3 className="text-2xl font-black text-slate-800 mt-1">{allocatedAssetsCount}</h3>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                    <Wrench size={24} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Maintenance Today</span>
-                    <h3 className="text-2xl font-black text-slate-800 mt-1">{maintenanceTodayCount}</h3>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Calendar size={24} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Bookings</span>
-                    <h3 className="text-2xl font-black text-slate-800 mt-1">{activeBookingsCount}</h3>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                    <ArrowRightLeft size={24} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Transfers</span>
-                    <h3 className="text-2xl font-black text-slate-800 mt-1">{pendingTransfersCount}</h3>
-                  </div>
-                </div>
+          {currentView === 'auth' && (
+            <div className="max-w-md mx-auto my-12 bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl">
+              <div className="flex gap-4 mb-6 border-b border-slate-700 pb-4">
+                <button 
+                  onClick={() => setAuthMode('login')} 
+                  className={`flex-1 text-center font-bold text-sm pb-2 border-b-2 transition-all ${authMode === 'login' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400'}`}
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => setAuthMode('signup')} 
+                  className={`flex-1 text-center font-bold text-sm pb-2 border-b-2 transition-all ${authMode === 'signup' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400'}`}
+                >
+                  Register Staff
+                </button>
               </div>
 
-              <div className="bg-rose-50 border border-rose-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
-                    <Clock size={20} />
-                  </div>
+              {authMode === 'login' ? (
+                <form onSubmit={handleLogin}>
                   <div>
-                    <h3 className="font-extrabold text-rose-900 text-lg leading-tight">Overdue Returns</h3>
-                    <p className="text-rose-600 text-xs font-semibold">Immediate action required from operations management</p>
-                  </div>
-                </div>
-                {overdueReturns.length === 0 ? (
-                  <p className="text-rose-700 text-sm font-semibold">No assets are currently overdue.</p>
-                ) : (
-                  <div className="overflow-x-auto rounded-xl border border-rose-200/50 bg-white">
-                    <table className="w-full text-left border-collapse text-sm">
-                      <thead>
-                        <tr className="bg-rose-100/50 text-rose-800 font-bold border-b border-rose-200/50">
-                          <th className="p-4">Asset Tag</th>
-                          <th className="p-4">Name</th>
-                          <th className="p-4">Current Holder</th>
-                          <th className="p-4">Expected Return</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-rose-100/40 text-slate-700">
-                        {overdueReturns.map(o => (
-                          <tr key={o.id} className="hover:bg-rose-50/30 transition-colors">
-                            <td className="p-4 font-mono font-bold text-rose-600">{o.assetTag}</td>
-                            <td className="p-4 font-bold">{o.assetName}</td>
-                            <td className="p-4 font-semibold">{o.borrowerName}</td>
-                            <td className="p-4 font-bold text-rose-700">{o.expectedReturnDate}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                    <h3 className="font-extrabold text-slate-800 text-lg">Active Transfer Requests</h3>
-                    <span className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-bold">
-                      {transfers.filter(t => t.status === 'PENDING').length} Pending
-                    </span>
-                  </div>
-                  <div className="space-y-4">
-                    {transfers.filter(t => t.status === 'PENDING').length === 0 ? (
-                      <p className="text-slate-400 text-sm text-center py-6">No pending asset transfer requests.</p>
-                    ) : (
-                      transfers.filter(t => t.status === 'PENDING').map(t => {
-                        const asset = assets.find(a => a.id === t.assetId);
-                        const fromUser = users.find(u => u.id === t.fromUserId);
-                        const toUser = users.find(u => u.id === t.toUserId);
-                        return (
-                          <div key={t.id} className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-4">
-                            <div>
-                              <p className="font-bold text-slate-800">{asset ? asset.name : 'Asset'}</p>
-                              <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold mt-1">
-                                <span>{fromUser?.name}</span>
-                                <ChevronRight size={12} className="text-slate-400" />
-                                <span>{toUser?.name}</span>
-                              </div>
-                            </div>
-                            <div className="flex gap-2 shrink-0">
-                              <button
-                                onClick={() => handleApproveTransfer(t.id)}
-                                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-md shadow-indigo-500/10 hover:bg-indigo-700 transition-colors"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleRejectTransfer(t.id)}
-                                className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 transition-colors"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                    <h3 className="font-extrabold text-slate-800 text-lg">Active Maintenance Workflows</h3>
-                    <span className="text-xs bg-amber-50 text-amber-700 px-3 py-1 rounded-full font-bold">
-                      {maintenance.filter(m => m.status !== 'RESOLVED' && m.status !== 'REJECTED').length} Active
-                    </span>
-                  </div>
-                  <div className="space-y-4">
-                    {maintenance.filter(m => m.status !== 'RESOLVED' && m.status !== 'REJECTED').length === 0 ? (
-                      <p className="text-slate-400 text-sm text-center py-6">No active maintenance work scheduled.</p>
-                    ) : (
-                      maintenance.filter(m => m.status !== 'RESOLVED' && m.status !== 'REJECTED').map(m => {
-                        const asset = assets.find(a => a.id === m.assetId);
-                        return (
-                          <div key={m.id} className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-4">
-                            <div>
-                              <p className="font-bold text-slate-800">{asset ? asset.name : 'Asset'}</p>
-                              <p className="text-xs text-slate-500 font-semibold mt-0.5">{m.description}</p>
-                              <div className="mt-2">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  m.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
-                                }`}>
-                                  {m.status}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="shrink-0">
-                              {m.status === 'PENDING' ? (
-                                <button
-                                  onClick={() => handleApproveMaintenance(m.id)}
-                                  className="px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 transition-colors shadow-md shadow-amber-500/10"
-                                >
-                                  Approve Work
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleResolveMaintenance(m.id)}
-                                  className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/10"
-                                >
-                                  Mark Resolved
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-          )}
-
-          {activeTab === 'organization' && (
-            <div className="space-y-8">
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3">Asset Categories</h3>
-                  
-                  <form onSubmit={handleCreateCategory} className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Category Name"
-                      value={categoryForm.name}
-                      onChange={e => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                      className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Email Address</label>
+                    <input 
+                      type="email" 
+                      required 
+                      value={loginEmail} 
+                      onChange={e => setLoginEmail(e.target.value)} 
+                      placeholder="e.g. ranakeyur38@gmail.com" 
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
                     />
-                    <input
-                      type="text"
-                      placeholder="Description"
-                      value={categoryForm.description}
-                      onChange={e => setCategoryForm({ ...categoryForm, description: e.target.value })}
-                      className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
-                    />
-                    <button className="w-full py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                      <Plus size={14} /> Add Category
-                    </button>
-                  </form>
-
-                  <div className="space-y-2 mt-4 max-h-60 overflow-y-auto">
-                    {categories.map(c => (
-                      <div key={c.id} className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-xs">
-                        <p className="font-extrabold text-slate-800">{c.name}</p>
-                        <p className="text-slate-500 font-medium mt-0.5">{c.description}</p>
-                      </div>
-                    ))}
                   </div>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3">Departments</h3>
-                  
-                  <form onSubmit={handleCreateDepartment} className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Department Name"
-                      value={deptForm.name}
-                      onChange={e => setDeptForm({ ...deptForm, name: e.target.value })}
-                      className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Password</label>
+                    <input 
+                      type="password" 
+                      required 
+                      value={loginPassword} 
+                      onChange={e => setLoginPassword(e.target.value)} 
+                      placeholder="••••••••" 
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
                     />
-                    <select
-                      value={deptForm.parentId}
-                      onChange={e => setDeptForm({ ...deptForm, parentId: e.target.value })}
-                      className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
+                  </div>
+                  <button 
+                    type="submit" 
+                    className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                  >
+                    Authenticate Account
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleSignup}>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Full Name</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={signupName} 
+                      onChange={e => setSignupName(e.target.value)} 
+                      placeholder="Keyur Rana" 
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Email Address</label>
+                    <input 
+                      type="email" 
+                      required 
+                      value={signupEmail} 
+                      onChange={e => setSignupEmail(e.target.value)} 
+                      placeholder="keyur@example.com" 
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Password</label>
+                    <input 
+                      type="password" 
+                      required 
+                      value={signupPass} 
+                      onChange={e => setSignupPass(e.target.value)} 
+                      placeholder="••••••••" 
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Department Assignment</label>
+                    <select 
+                      value={signupDept} 
+                      onChange={e => setSignupDept(e.target.value)} 
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                     >
-                      <option value="">Parent Department (Optional)</option>
                       {departments.map(d => (
                         <option key={d.id} value={d.id}>{d.name}</option>
                       ))}
                     </select>
-                    <select
-                      value={deptForm.headId}
-                      onChange={e => setDeptForm({ ...deptForm, headId: e.target.value })}
-                      className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
-                    >
-                      <option value="">Assign Department Head</option>
-                      {users.map(u => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
-                      ))}
-                    </select>
-                    <button className="w-full py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                      <Plus size={14} /> Add Department
-                    </button>
-                  </form>
-
-                  <div className="space-y-2 mt-4 max-h-60 overflow-y-auto">
-                    {departments.map(d => {
-                      const parent = departments.find(p => p.id === d.parentId);
-                      const head = users.find(u => u.id === d.headId);
-                      return (
-                        <div key={d.id} className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-xs">
-                          <p className="font-extrabold text-slate-800">{d.name}</p>
-                          {parent && <p className="text-[10px] text-indigo-600 font-bold mt-0.5">Sub-dept of {parent.name}</p>}
-                          {head && <p className="text-[10px] text-slate-500 font-medium mt-0.5">Head: {head.name}</p>}
-                        </div>
-                      );
-                    })}
                   </div>
+                  <div className="mt-4 p-3 bg-indigo-950/30 border border-indigo-900/50 rounded-lg text-[10px] text-indigo-300 font-medium">
+                    Security Rule: Public signup registers users into a baseline 'Employee' role only. Elevated roles can only be granted by an administrator.
+                  </div>
+                  <button 
+                    type="submit" 
+                    className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                  >
+                    Complete Registration
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {currentView === 'dashboard' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight text-white mb-0.5">Operational Overview</h2>
+                  <p className="text-xs text-slate-400">Real-time statistics and rapid task management shortcuts.</p>
                 </div>
+              </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3">User Directory</h3>
-                  
-                  <form onSubmit={handleCreateUser} className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Username"
-                      value={userForm.username}
-                      onChange={e => setUserForm({ ...userForm, username: e.target.value })}
-                      className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Full Name"
-                      value={userForm.name}
-                      onChange={e => setUserForm({ ...userForm, name: e.target.value })}
-                      className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={userForm.email}
-                      onChange={e => setUserForm({ ...userForm, email: e.target.value })}
-                      className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
-                    />
-                    <button className="w-full py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                      <UserPlus size={14} /> Register User
-                    </button>
-                  </form>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {[
+                  { label: 'Available Assets', val: assets.filter(a => a.status === 'AVAILABLE').length, bg: 'bg-slate-800/80' },
+                  { label: 'Allocated Assets', val: assets.filter(a => a.status === 'ALLOCATED').length, bg: 'bg-slate-800/80' },
+                  { label: 'Maintenance Tasks Today', val: maintenance.filter(m => m.status === 'IN_PROGRESS' || m.status === 'PENDING').length, bg: 'bg-slate-800/80' },
+                  { label: 'Active Bookings', val: bookings.filter(b => !b.is_cancelled).length, bg: 'bg-slate-800/80' },
+                  { label: 'Pending Transfers', val: transfers.filter(t => t.status === 'REQUESTED').length, bg: 'bg-slate-800/80' },
+                ].map((kpi, idx) => (
+                  <div key={idx} className={`${kpi.bg} border border-slate-850 p-4 rounded-xl shadow-lg hover:border-slate-700 transition-colors`}>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{kpi.label}</p>
+                    <p className="text-2xl font-black mt-2 text-indigo-300">{kpi.val}</p>
+                  </div>
+                ))}
 
-                  <div className="space-y-2 mt-4 max-h-60 overflow-y-auto">
-                    {users.map(u => (
-                      <div key={u.id} className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-xs flex items-center justify-between">
-                        <div>
-                          <p className="font-extrabold text-slate-800">{u.name}</p>
-                          <p className="text-[10px] text-slate-400 font-medium">{u.email}</p>
+                <div className="bg-red-950/60 border border-red-900/60 p-4 rounded-xl shadow-lg relative overflow-hidden">
+                  <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Overdue Returns</p>
+                  <p className="text-2xl font-black mt-2 text-red-200">1</p>
+                  <span className="absolute top-2 right-2 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                </div>
+              </div>
+
+              <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 mt-8 mb-4">Quick Operations Hub</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-800/40 border border-slate-800 p-4 rounded-xl">
+                  <h4 className="text-xs font-bold text-slate-200 mb-1.5">Register Asset</h4>
+                  <p className="text-[11px] text-slate-400 mb-3">Add a new physical asset category record.</p>
+                  <button onClick={() => setCurrentView('directory')} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-lg text-xs font-extrabold border border-indigo-500/20 transition-all">Go to Register &rarr;</button>
+                </div>
+                <div className="bg-slate-800/40 border border-slate-800 p-4 rounded-xl">
+                  <h4 className="text-xs font-bold text-slate-200 mb-1.5">Book Resource</h4>
+                  <p className="text-[11px] text-slate-400 mb-3">Reserve shared vehicles or equipment slots.</p>
+                  <button onClick={() => setCurrentView('booking')} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-lg text-xs font-extrabold border border-indigo-500/20 transition-all">Go to Bookings &rarr;</button>
+                </div>
+                <div className="bg-slate-800/40 border border-slate-800 p-4 rounded-xl">
+                  <h4 className="text-xs font-bold text-slate-200 mb-1.5">Raise Maintenance Ticket</h4>
+                  <p className="text-[11px] text-slate-400 mb-3">Report faults on any allocated hardware.</p>
+                  <button onClick={() => setCurrentView('maintenance')} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-lg text-xs font-extrabold border border-indigo-500/20 transition-all">Go to Tickets &rarr;</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'organization' && currentUser.role === 'ADMIN' && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-xl font-bold tracking-tight text-white mb-0.5">Organization Setup Console</h2>
+                <p className="text-xs text-slate-400">Manage structure, categories, and permissions.</p>
+              </div>
+
+              <div className="flex gap-4 border-b border-slate-800 mb-6">
+                {[
+                  { id: 'departments', label: 'Departments' },
+                  { id: 'categories', label: 'Asset Categories' },
+                  { id: 'employees', label: 'Employee Directory' }
+                ].map(t => (
+                  <button 
+                    key={t.id} 
+                    onClick={() => setActiveOrgTab(t.id)} 
+                    className={`pb-2 text-xs font-extrabold border-b-2 transition-all ${activeOrgTab === t.id ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {activeOrgTab === 'departments' && (
+                <div className="bg-slate-800/30 border border-slate-850 p-6 rounded-xl">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Hierarchical Departments Tree</h3>
+                  <div className="space-y-4">
+                    {departments.filter(d => d.parentId === null).map(parent => (
+                      <div key={parent.id} className="border-l-2 border-slate-700 pl-4 space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-slate-800/80 rounded-lg border border-slate-750">
+                          <div>
+                            <span className="text-xs font-extrabold text-slate-100">{parent.name}</span>
+                            <span className="text-[10px] ml-3 bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full uppercase">Parent Dept</span>
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            Head: {users.find(u => u.id === parent.headId)?.name || 'None Assigned'}
+                          </div>
                         </div>
-                        <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded">
-                          {u.role}
-                        </span>
+                        {departments.filter(d => d.parentId === parent.id).map(child => (
+                          <div key={child.id} className="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg border border-slate-800 ml-6">
+                            <div>
+                              <span className="text-xs font-bold text-slate-300">{child.name}</span>
+                              <span className="text-[10px] ml-3 bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded-full uppercase border border-indigo-900/30">Sub-Dept</span>
+                            </div>
+                            <div className="text-xs text-slate-400 font-medium">
+                              Head: {users.find(u => u.id === child.headId)?.name || 'None Assigned'}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
                 </div>
+              )}
 
-              </div>
+              {activeOrgTab === 'categories' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-2">Category Schemas</h3>
+                    {categories.map(c => (
+                      <div key={c.id} className="p-4 bg-slate-850/60 border border-slate-800 rounded-xl">
+                        <h4 className="text-xs font-extrabold text-indigo-300">{c.name}</h4>
+                        <p className="text-[11px] text-slate-400 mt-1">{c.description}</p>
+                        <div className="mt-3 bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 text-[10px] font-mono text-slate-300">
+                          {JSON.stringify(c.schema, null, 2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-slate-800/20 border border-slate-800 p-6 rounded-xl">
+                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Schema Configurator</h3>
+                    <div className="p-4 bg-indigo-950/20 border border-indigo-900/30 rounded-xl text-xs text-indigo-300">
+                      <p className="font-extrabold uppercase text-[10px] mb-1">Dynamic Field Configurations</p>
+                      Add warranty specifications, serial tags, or license attributes custom schemas per asset category using dynamic JSON inputs.
+                    </div>
+                  </div>
+                </div>
+              )}
 
+              {activeOrgTab === 'employees' && (
+                <div className="bg-slate-800/30 border border-slate-805 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-850/80 border-b border-slate-800 text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                        <th className="p-3">Staff Name</th>
+                        <th className="p-3">Email Address</th>
+                        <th className="p-3">Role Designation</th>
+                        <th className="p-3 text-right">Promote Authorization</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-850">
+                      {users.map(u => (
+                        <tr key={u.id} className="hover:bg-slate-800/20">
+                          <td className="p-3 font-bold text-slate-200">{u.name}</td>
+                          <td className="p-3 text-slate-400 font-medium">{u.email}</td>
+                          <td className="p-3">
+                            <span className="bg-indigo-950 text-indigo-300 border border-indigo-900/30 px-2 py-0.5 rounded-full text-[9px] uppercase font-bold tracking-wide">
+                              {u.role.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right space-x-1.5">
+                            {u.role === 'EMPLOYEE' && (
+                              <>
+                                <button onClick={() => handlePromoteRole(u.id, 'ASSET_MANAGER')} className="text-[10px] bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 px-2 py-1 rounded font-bold hover:bg-indigo-600/30 transition-colors">Make Manager</button>
+                                <button onClick={() => handlePromoteRole(u.id, 'DEPARTMENT_HEAD')} className="text-[10px] bg-slate-700 border border-slate-650 text-slate-200 px-2 py-1 rounded font-bold hover:bg-slate-650 transition-colors">Make Head</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
-          {activeTab === 'directory' && (
+          {currentView === 'directory' && (
             <div className="space-y-8">
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm h-fit">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3 mb-4">Register New Asset</h3>
+                <div className="bg-slate-800/30 border border-slate-800 p-6 rounded-2xl lg:col-span-1">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Register Asset Record</h3>
                   <form onSubmit={handleRegisterAsset} className="space-y-4">
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Asset Tag</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. LAP-005"
-                        value={assetForm.tag}
-                        onChange={e => setAssetForm({ ...assetForm, tag: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
-                        required
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Asset Name</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={regName} 
+                        onChange={e => setRegName(e.target.value)} 
+                        placeholder="MacBook Pro 16" 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Asset Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Dell Latitude 5430"
-                        value={assetForm.name}
-                        onChange={e => setAssetForm({ ...assetForm, name: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Serial Number</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. DEL49281"
-                        value={assetForm.serialNumber}
-                        onChange={e => setAssetForm({ ...assetForm, serialNumber: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Category</label>
-                      <select
-                        value={assetForm.categoryId}
-                        onChange={e => setAssetForm({ ...assetForm, categoryId: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
-                        required
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Asset Category</label>
+                      <select 
+                        value={regCat} 
+                        onChange={e => setRegCat(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                       >
-                        <option value="">Select Category</option>
                         {categories.map(c => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </div>
-
-                    {parseInt(assetForm.categoryId) === 1 && (
-                      <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 block mb-1">RAM</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 16GB"
-                            value={assetForm.ram}
-                            onChange={e => setAssetForm({ ...assetForm, ram: e.target.value })}
-                            className="w-full text-xs p-2.5 border border-slate-200 bg-white rounded-lg focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 block mb-1">Storage</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 512GB SSD"
-                            value={assetForm.storage}
-                            onChange={e => setAssetForm({ ...assetForm, storage: e.target.value })}
-                            className="w-full text-xs p-2.5 border border-slate-200 bg-white rounded-lg focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {parseInt(assetForm.categoryId) === 2 && (
-                      <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 block mb-1">Cores</label>
-                          <input
-                            type="number"
-                            placeholder="e.g. 32"
-                            value={assetForm.cores}
-                            onChange={e => setAssetForm({ ...assetForm, cores: e.target.value })}
-                            className="w-full text-xs p-2.5 border border-slate-200 bg-white rounded-lg focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 block mb-1">Memory</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 256GB"
-                            value={assetForm.memory}
-                            onChange={e => setAssetForm({ ...assetForm, memory: e.target.value })}
-                            className="w-full text-xs p-2.5 border border-slate-200 bg-white rounded-lg focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {parseInt(assetForm.categoryId) === 3 && (
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <label className="text-[10px] font-bold text-slate-500 block mb-1">Capacity (People)</label>
-                        <input
-                          type="number"
-                          placeholder="e.g. 12"
-                          value={assetForm.capacity}
-                          onChange={e => setAssetForm({ ...assetForm, capacity: e.target.value })}
-                          className="w-full text-xs p-2.5 border border-slate-200 bg-white rounded-lg focus:outline-none"
-                        />
-                      </div>
-                    )}
-
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Location</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Server Room A"
-                        value={assetForm.location}
-                        onChange={e => setAssetForm({ ...assetForm, location: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Serial Number</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={regSerial} 
+                        onChange={e => setRegSerial(e.target.value)} 
+                        placeholder="C02DF124MD6M" 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
                       />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="is_shared"
-                        checked={assetForm.is_shared}
-                        onChange={e => setAssetForm({ ...assetForm, is_shared: e.target.checked })}
-                        className="w-4 h-4 rounded text-indigo-600"
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Acquisition Cost ($)</label>
+                      <input 
+                        type="number" 
+                        required 
+                        value={regCost} 
+                        onChange={e => setRegCost(e.target.value)} 
+                        placeholder="2499" 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
                       />
-                      <label htmlFor="is_shared" className="text-xs font-bold text-slate-700">Is Shared / Resource Pool</label>
                     </div>
-                    <button className="w-full py-3 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                      <Plus size={14} /> Register Asset
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Location Tag</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={regLocation} 
+                        onChange={e => setRegLocation(e.target.value)} 
+                        placeholder="HQ-Floor 3" 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 py-2">
+                      <input 
+                        type="checkbox" 
+                        checked={regShared} 
+                        onChange={e => setRegShared(e.target.checked)} 
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-700 bg-slate-900"
+                      />
+                      <span className="text-xs font-bold text-slate-300">Is Shared/Bookable Resource</span>
+                    </div>
+                    <button 
+                      type="submit" 
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                    >
+                      Generate &amp; Save Asset
                     </button>
                   </form>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm lg:col-span-2 space-y-6">
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 border-b border-slate-100 pb-4">
-                    <div className="relative">
-                      <Search size={16} className="absolute left-3 top-3.5 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="Search assets..."
-                        value={assetFilter.q}
-                        onChange={e => setAssetFilter({ ...assetFilter, q: e.target.value })}
-                        className="w-full text-xs pl-9 pr-3 py-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
-                      />
-                    </div>
-                    <select
-                      value={assetFilter.status}
-                      onChange={e => setAssetFilter({ ...assetFilter, status: e.target.value })}
-                      className="text-xs p-3 border border-slate-200 rounded-lg focus:outline-none text-slate-500 font-semibold"
+                <div className="lg:col-span-2 space-y-4">
+                  <div className="flex gap-3 bg-slate-800/20 border border-slate-800 p-4 rounded-xl">
+                    <input 
+                      type="text" 
+                      placeholder="Filter by Tag, Serial, or Name..." 
+                      value={dirSearch}
+                      onChange={e => setDirSearch(e.target.value)}
+                      className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
+                    />
+                    <select 
+                      value={dirStatus} 
+                      onChange={e => setDirStatus(e.target.value)} 
+                      className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500"
                     >
-                      <option value="">All Statuses</option>
+                      <option value="ALL">All Statuses</option>
                       <option value="AVAILABLE">Available</option>
                       <option value="ALLOCATED">Allocated</option>
-                      <option value="RESERVED">Reserved</option>
                       <option value="UNDER_MAINTENANCE">Under Maintenance</option>
                       <option value="LOST">Lost</option>
-                      <option value="RETIRED">Retired</option>
-                      <option value="DISPOSED">Disposed</option>
                     </select>
-                    <select
-                      value={assetFilter.categoryId}
-                      onChange={e => setAssetFilter({ ...assetFilter, categoryId: e.target.value })}
-                      className="text-xs p-3 border border-slate-200 rounded-lg focus:outline-none text-slate-500 font-semibold"
-                    >
-                      <option value="">All Categories</option>
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Location filter..."
-                      value={assetFilter.location}
-                      onChange={e => setAssetFilter({ ...assetFilter, location: e.target.value })}
-                      className="text-xs p-3 border border-slate-200 rounded-lg focus:outline-none font-semibold"
-                    />
                   </div>
 
-                  <div className="overflow-x-auto rounded-xl border border-slate-100">
-                    <table className="w-full text-left border-collapse text-xs">
+                  <div className="bg-slate-800/30 border border-slate-805 rounded-xl overflow-hidden shadow-xl">
+                    <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-100">
-                          <th className="p-4">Tag</th>
-                          <th className="p-4">Name</th>
-                          <th className="p-4">Category</th>
-                          <th className="p-4">Status</th>
-                          <th className="p-4">Location</th>
-                          <th className="p-4">Attributes</th>
+                        <tr className="bg-slate-850/80 border-b border-slate-800 text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                          <th className="p-3">Tracking Tag</th>
+                          <th className="p-3">Asset Details</th>
+                          <th className="p-3">Location</th>
+                          <th className="p-3">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                        {filteredAssets.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="p-8 text-center text-slate-400 font-semibold">No assets match your search filters.</td>
+                      <tbody className="divide-y divide-slate-850">
+                        {assets.filter(a => {
+                          const matchesSearch = a.name.toLowerCase().includes(dirSearch.toLowerCase()) || a.tag.toLowerCase().includes(dirSearch.toLowerCase()) || a.serialNumber.toLowerCase().includes(dirSearch.toLowerCase());
+                          const matchesStatus = dirStatus === 'ALL' || a.status === dirStatus;
+                          return matchesSearch && matchesStatus;
+                        }).map(a => (
+                          <tr 
+                            key={a.id} 
+                            onClick={() => setSelectedAsset(a)}
+                            className="hover:bg-slate-800/20 cursor-pointer transition-colors"
+                          >
+                            <td className="p-3 font-mono font-bold text-indigo-400">{a.tag}</td>
+                            <td className="p-3">
+                              <p className="font-bold text-slate-200">{a.name}</p>
+                              <p className="text-[10px] text-slate-400 font-medium">Serial: {a.serialNumber}</p>
+                            </td>
+                            <td className="p-3 text-slate-400 font-bold">{a.location}</td>
+                            <td className="p-3">
+                              <span className={`status-badge ${a.status === 'AVAILABLE' ? 'status-available' : a.status === 'ALLOCATED' ? 'status-allocated' : 'status-maintenance'}`}>
+                                {a.status}
+                              </span>
+                            </td>
                           </tr>
-                        ) : (
-                          filteredAssets.map(a => {
-                            const cat = categories.find(c => c.id === a.categoryId);
-                            return (
-                              <tr key={a.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="p-4 font-mono font-bold text-indigo-600">{a.tag}</td>
-                                <td className="p-4 font-bold text-slate-800">{a.name}</td>
-                                <td className="p-4">{cat ? cat.name : 'Unknown'}</td>
-                                <td className="p-4">
-                                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                    a.status === 'AVAILABLE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                                    a.status === 'ALLOCATED' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
-                                    a.status === 'UNDER_MAINTENANCE' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                                    'bg-slate-100 text-slate-600'
-                                  }`}>
-                                    {a.status}
-                                  </span>
-                                </td>
-                                <td className="p-4">{a.location || 'N/A'}</td>
-                                <td className="p-4 font-mono text-[10px] text-slate-500">
-                                  {Object.entries(a.attributes).map(([k, v]) => `${k}:${v}`).join(', ') || 'N/A'}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
+                        ))}
                       </tbody>
                     </table>
                   </div>
-
                 </div>
-
               </div>
 
+              {selectedAsset && (
+                <div className="fixed inset-y-0 right-0 w-96 bg-slate-850 border-l border-slate-700 shadow-2xl p-6 z-50 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                      <div>
+                        <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest block font-mono">{selectedAsset.tag}</span>
+                        <h4 className="text-sm font-black text-white mt-1">{selectedAsset.name}</h4>
+                      </div>
+                      <button onClick={() => setSelectedAsset(null)} className="text-slate-400 hover:text-white font-extrabold text-xs">Close</button>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Acquisition Details</span>
+                        <p className="text-slate-200">Date: <span className="font-bold">{selectedAsset.acquisitionDate}</span></p>
+                        <p className="text-slate-200 mt-0.5">Value: <span className="font-bold">${selectedAsset.cost}</span></p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Active Allocation History</span>
+                        {allocations.filter(al => al.assetId === selectedAsset.id).length > 0 ? (
+                          <div className="space-y-2 mt-1.5">
+                            {allocations.filter(al => al.assetId === selectedAsset.id).map(al => (
+                              <div key={al.id} className="p-2 bg-slate-900 border border-slate-800 rounded-lg">
+                                <p className="font-bold text-slate-200">{users.find(u => u.id === al.userId)?.name}</p>
+                                <p className="text-[10px] text-slate-400 font-medium">From: {new Date(al.checkedOutAt).toLocaleDateString()} &middot; Return: {al.actualReturnDate || 'Active'}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-slate-400 font-medium italic mt-1">No checkout logs registered.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedAsset(null)} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-lg text-xs tracking-wide border border-slate-750 transition-colors">Dismiss Drawer</button>
+                </div>
+              )}
             </div>
           )}
 
-          {activeTab === 'allocation' && (
+          {currentView === 'allocation' && (
             <div className="space-y-8">
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm h-fit">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3 mb-4">Allocate Asset</h3>
-                  
-                  {allocError && (
-                    <div className="p-3.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2 mb-4">
-                      <AlertCircle size={16} className="shrink-0" />
-                      <p>{allocError}</p>
-                    </div>
-                  )}
-
+                <div className="bg-slate-800/30 border border-slate-800 p-6 rounded-2xl">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Asset Checkout &amp; Transfer</h3>
                   <form onSubmit={handleCreateAllocation} className="space-y-4">
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Select Asset (Available Only)</label>
-                      <select
-                        value={allocForm.assetId}
-                        onChange={e => setAllocForm({ ...allocForm, assetId: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
-                        required
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Select Target Asset</label>
+                      <select 
+                        value={allocAsset} 
+                        onChange={e => handleAllocationAssetChange(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                       >
-                        <option value="">Select Asset</option>
+                        <option value="">Choose Asset...</option>
                         {assets.map(a => (
-                          <option key={a.id} value={a.id}>
-                            {a.name} ({a.tag}) - {a.status}
-                          </option>
+                          <option key={a.id} value={a.id}>{a.name} ({a.tag}) - {a.status}</option>
                         ))}
                       </select>
                     </div>
+
+                    {allocConflictMsg && (
+                      <div className="p-3.5 bg-red-950/40 border border-red-900/60 rounded-xl flex items-center justify-between text-xs text-red-300">
+                        <div>
+                          <p className="font-extrabold uppercase text-[10px] text-red-400">Collision Conflict</p>
+                          <p className="font-semibold mt-0.5">{allocConflictMsg}</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={handleInitiateTransfer}
+                          className="px-3 py-1 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg text-[10px] tracking-wide shadow-lg shadow-red-950 transition-colors"
+                        >
+                          Request Transfer
+                        </button>
+                      </div>
+                    )}
+
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Assign To User</label>
-                      <select
-                        value={allocForm.userId}
-                        onChange={e => setAllocForm({ ...allocForm, userId: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
-                        required
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Assignee Staff</label>
+                      <select 
+                        value={allocUser} 
+                        onChange={e => setAllocUser(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                       >
-                        <option value="">Select User</option>
                         {users.map(u => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
+                          <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Expected Return Date</label>
-                      <input
-                        type="date"
-                        value={allocForm.expectedReturnDate}
-                        onChange={e => setAllocForm({ ...allocForm, expectedReturnDate: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Expected Return Date</label>
+                      <input 
+                        type="date" 
+                        value={allocReturn} 
+                        onChange={e => setAllocReturn(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                       />
                     </div>
-                    <button className="w-full py-3 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shadow-md shadow-indigo-500/10">
-                      Allocate Asset
-                    </button>
+                    {!allocConflictMsg && (
+                      <button 
+                        type="submit" 
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                      >
+                        Approve Checkout
+                      </button>
+                    )}
                   </form>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm lg:col-span-2 space-y-4">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3">Active Allocations</h3>
-                  
-                  <div className="overflow-x-auto rounded-xl border border-slate-100">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-100">
-                          <th className="p-4">Asset</th>
-                          <th className="p-4">Allocated To</th>
-                          <th className="p-4">Checked Out</th>
-                          <th className="p-4">Expected Return</th>
-                          <th className="p-4">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                        {allocations.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="p-8 text-center text-slate-400 font-semibold">No active allocations.</td>
-                          </tr>
-                        ) : (
-                          allocations.map(a => {
-                            const asset = assets.find(ast => ast.id === a.assetId);
-                            const user = users.find(u => u.id === a.userId);
-                            const isOverdue = !a.actualReturnDate && a.expectedReturnDate && a.expectedReturnDate < todayStr;
-                            return (
-                              <tr key={a.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="p-4">
-                                  <p className="font-bold text-slate-800">{asset ? asset.name : 'Unknown'}</p>
-                                  <span className="font-mono text-[10px] text-slate-400">{asset ? asset.tag : 'N/A'}</span>
-                                </td>
-                                <td className="p-4 font-semibold">{user ? user.name : 'Unknown'}</td>
-                                <td className="p-4 text-slate-500">{new Date(a.checkedOutAt).toLocaleDateString()}</td>
-                                <td className="p-4 text-slate-500">{a.expectedReturnDate || 'No Limit'}</td>
-                                <td className="p-4">
-                                  {a.actualReturnDate ? (
-                                    <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-bold text-[10px]">Returned</span>
-                                  ) : isOverdue ? (
-                                    <span className="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-full font-extrabold text-[10px]">Overdue</span>
-                                  ) : (
-                                    <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full font-bold text-[10px]">Active</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="bg-slate-800/30 border border-slate-800 p-6 rounded-2xl">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Return Check-in Desk</h3>
+                  <form onSubmit={handleProcessReturn} className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Return Asset</label>
+                      <select 
+                        value={returnAssetId} 
+                        onChange={e => setReturnAssetId(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                      >
+                        <option value="">Select Borrowed Asset...</option>
+                        {assets.filter(a => a.status === 'ALLOCATED').map(a => (
+                          <option key={a.id} value={a.id}>{a.name} ({a.tag})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Check-in Condition Notes</label>
+                      <textarea 
+                        value={returnNotes} 
+                        onChange={e => setReturnNotes(e.target.value)} 
+                        placeholder="Device returned in excellent condition, wiped and cleaned." 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 h-20"
+                      />
+                    </div>
+                    <button 
+                      type="submit" 
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                    >
+                      Confirm Return Check-in
+                    </button>
+                  </form>
                 </div>
-
               </div>
 
+              <div className="bg-slate-800/30 border border-slate-805 rounded-xl p-6">
+                <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Transfer Request Management</h3>
+                <div className="space-y-3">
+                  {transfers.map(t => (
+                    <div key={t.id} className="flex items-center justify-between p-4 bg-slate-850/60 border border-slate-800 rounded-xl">
+                      <div>
+                        <span className="font-bold text-slate-200 text-xs">Asset Tag: {assets.find(a => a.id === t.assetId)?.tag}</span> &middot; 
+                        <span className="text-[11px] text-slate-400 font-medium ml-2">
+                          From: {users.find(u => u.id === t.fromUserId)?.name} &rarr; To: {users.find(u => u.id === t.toUserId)?.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-900/30 ${t.status === 'REQUESTED' ? 'bg-indigo-950 text-indigo-300' : 'bg-slate-800 text-slate-400'}`}>
+                          {t.status}
+                        </span>
+                        {t.status === 'REQUESTED' && (
+                          <button 
+                            onClick={() => handleApproveTransfer(t.id)} 
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1 rounded text-[10px] tracking-wide transition-colors"
+                          >
+                            Approve Re-allocation
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
-          {activeTab === 'booking' && (
+          {currentView === 'booking' && (
             <div className="space-y-8">
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm h-fit">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3 mb-4">Book Shared Resource</h3>
-                  
-                  {bookingError && (
-                    <div className="p-3.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2 mb-4">
-                      <AlertCircle size={16} className="shrink-0" />
-                      <p>{bookingError}</p>
-                    </div>
-                  )}
-
+                <div className="bg-slate-800/30 border border-slate-800 p-6 rounded-2xl lg:col-span-1">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Reserve Shared Slots</h3>
                   <form onSubmit={handleCreateBooking} className="space-y-4">
+                    {bookError && (
+                      <div className="p-3 bg-red-950/40 border border-red-900/50 rounded-xl text-xs text-red-300 font-medium">
+                        {bookError}
+                      </div>
+                    )}
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Select Shared Resource</label>
-                      <select
-                        value={bookingForm.resourceId}
-                        onChange={e => setBookingForm({ ...bookingForm, resourceId: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
-                        required
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Select Shared Resource</label>
+                      <select 
+                        value={bookResource} 
+                        onChange={e => setBookResource(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                       >
-                        <option value="">Select Resource</option>
                         {assets.filter(a => a.is_shared).map(a => (
                           <option key={a.id} value={a.id}>{a.name} ({a.tag})</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">User Booking</label>
-                      <select
-                        value={bookingForm.userId}
-                        onChange={e => setBookingForm({ ...bookingForm, userId: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
-                        required
-                      >
-                        <option value="">Select User</option>
-                        {users.map(u => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Start Time</label>
-                      <input
-                        type="datetime-local"
-                        value={bookingForm.startTime}
-                        onChange={e => setBookingForm({ ...bookingForm, startTime: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
-                        required
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Start Reservation Time</label>
+                      <input 
+                        type="datetime-local" 
+                        required 
+                        value={bookStart} 
+                        onChange={e => setBookStart(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">End Time</label>
-                      <input
-                        type="datetime-local"
-                        value={bookingForm.endTime}
-                        onChange={e => setBookingForm({ ...bookingForm, endTime: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
-                        required
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">End Reservation Time</label>
+                      <input 
+                        type="datetime-local" 
+                        required 
+                        value={bookEnd} 
+                        onChange={e => setBookEnd(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                       />
                     </div>
-                    <button className="w-full py-3 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shadow-md shadow-indigo-500/10">
-                      Reserve Slot
+                    <button 
+                      type="submit" 
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                    >
+                      Book Time Slot
                     </button>
                   </form>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm lg:col-span-2 space-y-4">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3">Active Schedule Bookings</h3>
-                  
-                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                    {bookings.length === 0 ? (
-                      <p className="text-slate-400 text-sm text-center py-8">No shared resource slots reserved.</p>
-                    ) : (
-                      bookings.map(b => {
-                        const resource = assets.find(r => r.id === b.resourceId);
-                        const user = users.find(u => u.id === b.userId);
-                        return (
-                          <div key={b.id} className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                            <div>
-                              <p className="font-bold text-slate-800">{resource ? resource.name : 'Shared Resource'}</p>
-                              <p className="text-xs text-slate-500 font-semibold mt-0.5">Reserved by {user?.name}</p>
+                <div className="bg-slate-800/30 border border-slate-805 rounded-xl p-6 lg:col-span-2">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Resource Calendars</h3>
+                  <div className="space-y-4">
+                    {assets.filter(a => a.is_shared).map(r => (
+                      <div key={r.id} className="p-4 bg-slate-850/60 border border-slate-800 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                          <span className="font-extrabold text-xs text-slate-200">{r.name} ({r.tag})</span>
+                          <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded uppercase font-bold tracking-wider">Shared Resource</span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2.5">
+                          {bookings.filter(b => b.resourceId === r.id && !b.is_cancelled).map(b => (
+                            <div key={b.id} className="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 text-xs">
+                              <div>
+                                <span className="font-bold text-slate-300">Reserved by {users.find(u => u.id === b.userId)?.name}</span>
+                                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  {new Date(b.startTime).toLocaleString()} &mdash; {new Date(b.endTime).toLocaleString()}
+                                </p>
+                              </div>
+                              <span className="bg-indigo-950 text-indigo-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-indigo-900/30 uppercase tracking-wide">Reserved Slot</span>
                             </div>
-                            <div className="text-right text-xs">
-                              <p className="font-mono font-bold text-indigo-600">
-                                {new Date(b.startTime).toLocaleString()}
-                              </p>
-                              <p className="text-[10px] text-slate-400 font-medium">to</p>
-                              <p className="font-mono font-bold text-indigo-600">
-                                {new Date(b.endTime).toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-
               </div>
-
             </div>
           )}
 
-          {activeTab === 'maintenance' && (
+          {currentView === 'maintenance' && (
             <div className="space-y-8">
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm h-fit">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3 mb-4">Request Maintenance</h3>
-                  
-                  <form onSubmit={handleCreateMaintenance} className="space-y-4">
+                <div className="bg-slate-800/30 border border-slate-800 p-6 rounded-2xl lg:col-span-1">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Submit Fault Report</h3>
+                  <form onSubmit={handleRaiseMaintenance} className="space-y-4">
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Select Asset</label>
-                      <select
-                        value={maintenanceForm.assetId}
-                        onChange={e => setMaintenanceForm({ ...maintenanceForm, assetId: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
-                        required
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Target Hardware</label>
+                      <select 
+                        value={maintAsset} 
+                        onChange={e => setMaintAsset(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
                       >
-                        <option value="">Select Asset</option>
                         {assets.map(a => (
                           <option key={a.id} value={a.id}>{a.name} ({a.tag})</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Requested By</label>
-                      <select
-                        value={maintenanceForm.requestedById}
-                        onChange={e => setMaintenanceForm({ ...maintenanceForm, requestedById: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold text-slate-600"
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Hardware Breakdown Description</label>
+                      <textarea 
                         required
-                      >
-                        <option value="">Select User</option>
-                        {users.map(u => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
-                      </select>
+                        value={maintDesc} 
+                        onChange={e => setMaintDesc(e.target.value)} 
+                        placeholder="Describe screen flickering, system crashes, or physical defects..." 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 h-24"
+                      />
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-600 block mb-1">Issues Description</label>
-                      <textarea
-                        rows={3}
-                        placeholder="Detail issues requiring maintenance work..."
-                        value={maintenanceForm.description}
-                        onChange={e => setMaintenanceForm({ ...maintenanceForm, description: e.target.value })}
-                        className="w-full text-xs p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600 font-semibold"
-                        required
-                      ></textarea>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Priority Flag</label>
+                      <select 
+                        value={maintPriority} 
+                        onChange={e => setMaintPriority(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                      </select>
                     </div>
-                    <button className="w-full py-3 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shadow-md shadow-indigo-500/10">
-                      Submit request
+                    <button 
+                      type="submit" 
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                    >
+                      File Fault Report
                     </button>
                   </form>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm lg:col-span-2 space-y-4">
-                  <h3 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3">Maintenance Directory Logs</h3>
+                <div className="lg:col-span-2 space-y-4 bg-slate-800/30 border border-slate-805 p-6 rounded-2xl">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Asset Manager Pipeline Workspace</h3>
                   
-                  <div className="overflow-x-auto rounded-xl border border-slate-100">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-100">
-                          <th className="p-4">Asset</th>
-                          <th className="p-4">Reported By</th>
-                          <th className="p-4">Description</th>
-                          <th className="p-4">Reported Date</th>
-                          <th className="p-4">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                        {maintenance.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="p-8 text-center text-slate-400 font-semibold">No maintenance entries recorded.</td>
-                          </tr>
-                        ) : (
-                          maintenance.map(m => {
-                            const asset = assets.find(ast => ast.id === m.assetId);
-                            const user = users.find(u => u.id === m.requestedById);
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {['PENDING', 'APPROVED', 'RESOLVED'].map(col => (
+                      <div key={col} className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+                        <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-2">{col} Pipeline</h4>
+                        <div className="space-y-3">
+                          {maintenance.filter(m => m.status === col).map(ticket => {
+                            const assetItem = assets.find(a => a.id === ticket.assetId);
                             return (
-                              <tr key={m.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="p-4 font-bold text-slate-800">{asset ? asset.name : 'Unknown'}</td>
-                                <td className="p-4 font-semibold text-slate-600">{user ? user.name : 'Unknown'}</td>
-                                <td className="p-4 text-slate-500 max-w-[200px] truncate">{m.description}</td>
-                                <td className="p-4 text-slate-500">{new Date(m.createdAt).toLocaleDateString()}</td>
-                                <td className="p-4">
-                                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                    m.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                                    m.status === 'APPROVED' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                                    m.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                                    'bg-slate-50 text-slate-500'
-                                  }`}>
-                                    {m.status}
+                              <div key={ticket.id} className="p-3 bg-slate-850 border border-slate-800 rounded-lg space-y-2">
+                                <div className="flex justify-between items-center text-[10px]">
+                                  <span className="font-mono font-bold text-indigo-400">{assetItem ? assetItem.tag : ''}</span>
+                                  <span className={`px-2 py-0.5 rounded font-extrabold uppercase ${ticket.priority === 'High' ? 'bg-red-950 text-red-300' : 'bg-slate-800 text-slate-400'}`}>
+                                    {ticket.priority}
                                   </span>
-                                </td>
-                              </tr>
+                                </div>
+                                <p className="text-xs font-bold text-slate-200">{assetItem ? assetItem.name : ''}</p>
+                                <p className="text-[11px] text-slate-400 font-medium">{ticket.description}</p>
+                                
+                                <div className="flex justify-end gap-1.5 pt-2 border-t border-slate-800 text-[10px] font-bold">
+                                  {col === 'PENDING' && (
+                                    <button 
+                                      onClick={() => handleUpdateMaintenanceStatus(ticket.id, 'APPROVED')} 
+                                      className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded"
+                                    >
+                                      Approve
+                                    </button>
+                                  )}
+                                  {col === 'APPROVED' && (
+                                    <button 
+                                      onClick={() => handleUpdateMaintenanceStatus(ticket.id, 'RESOLVED')} 
+                                      className="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded"
+                                    >
+                                      Resolve Fault
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             );
-                          })
-                        )}
-                      </tbody>
-                    </table>
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'audit' && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                
+                <div className="bg-slate-800/30 border border-slate-800 p-6 rounded-2xl lg:col-span-1">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Stock check configuration</h3>
+                  <form onSubmit={e => e.preventDefault()} className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Target Scope Location</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={auditPlanLocation} 
+                        onChange={e => setAuditPlanLocation(e.target.value)} 
+                        placeholder="e.g. HQ-Floor 3" 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Appointed Auditor</label>
+                      <select 
+                        value={auditPlanAuditor} 
+                        onChange={e => setAuditPlanAuditor(e.target.value)} 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                      >
+                        {users.map(u => (
+                          <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide shadow-lg shadow-indigo-600/10 transition-colors"
+                    >
+                      Initiate Audit Cycle
+                    </button>
+                  </form>
+
+                  {auditReport && (
+                    <div className="mt-6 p-4 bg-slate-850 border border-slate-800 rounded-xl space-y-3">
+                      <h4 className="text-xs font-black text-indigo-300 uppercase tracking-wide border-b border-slate-800 pb-1.5">Cycle Discrepancy Report</h4>
+                      <p className="text-xs text-slate-300 font-bold">Total Scanned: {auditReport.total}</p>
+                      <div className="space-y-1.5 text-[11px] text-slate-400 font-medium">
+                        <p>Verified Assets: <span className="text-green-400 font-bold">{auditReport.verified.join(', ') || 'None'}</span></p>
+                        <p>Damaged Assets: <span className="text-yellow-400 font-bold">{auditReport.damaged.join(', ') || 'None'}</span></p>
+                        <p>Missing (Shifted to Lost): <span className="text-red-400 font-bold">{auditReport.missing.join(', ') || 'None'}</span></p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="lg:col-span-2 space-y-4 bg-slate-800/30 border border-slate-805 p-6 rounded-2xl">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-2">
+                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider m-0">Auditor Inspection Desk</h3>
+                    {!auditCycles[0].isClosed && (
+                      <button 
+                        onClick={() => handleCloseAuditCycle(1)} 
+                        className="bg-red-800 hover:bg-red-700 text-red-200 border border-red-900 font-extrabold px-3 py-1.5 rounded-lg text-xs tracking-wide shadow-lg transition-colors"
+                      >
+                        Close Audit Cycle
+                      </button>
+                    )}
+                  </div>
+
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-850/80 border-b border-slate-800 text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                        <th className="p-3">Asset Item</th>
+                        <th className="p-3">Inspection Status</th>
+                        <th className="p-3 text-right">Verification Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-850">
+                      {auditEntries.map(entry => {
+                        const assetObj = assets.find(a => a.id === entry.assetId);
+                        return (
+                          <tr key={entry.id} className="hover:bg-slate-800/20">
+                            <td className="p-3 font-bold text-slate-200">{assetObj ? assetObj.name : ''}</td>
+                            <td className="p-3">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-905/30 ${entry.status === 'VERIFIED' ? 'bg-green-950 text-green-300' : entry.status === 'MISSING' ? 'bg-red-950 text-red-300' : 'bg-slate-800 text-slate-400'}`}>
+                                {entry.status}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right space-x-1.5">
+                              {!auditCycles[0].isClosed && (
+                                <>
+                                  <button onClick={() => handleUpdateAuditStatus(entry.id, 'VERIFIED')} className="text-[10px] bg-green-600/20 border border-green-500/30 text-green-300 px-2 py-0.5 rounded hover:bg-green-600/30 transition-colors">Verify</button>
+                                  <button onClick={() => handleUpdateAuditStatus(entry.id, 'MISSING')} className="text-[10px] bg-red-600/20 border border-red-500/30 text-red-300 px-2 py-0.5 rounded hover:bg-red-600/30 transition-colors">Flag Missing</button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'reports' && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+                
+                <div className="bg-slate-800/30 border border-slate-800 p-6 rounded-2xl lg:col-span-1 space-y-4">
+                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-2">Custom Report Builder</h3>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Export Scope</label>
+                    <select className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500">
+                      <option value="ALL">All Categories</option>
+                      <option value="1">Electronics</option>
+                      <option value="2">Furniture</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5 tracking-wider">Date Parameters</label>
+                    <input type="date" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500" />
+                  </div>
+                  
+                  <div className="pt-4 border-t border-slate-800 space-y-2">
+                    <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs tracking-wide transition-colors">Export PDF Report</button>
+                    <button className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-lg text-xs tracking-wide border border-slate-750 transition-colors">Export CSV Data</button>
                   </div>
                 </div>
 
-              </div>
+                <div className="lg:col-span-3 space-y-6">
+                  <div className="bg-slate-800/30 border border-slate-805 p-6 rounded-2xl">
+                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Operational Efficiency Insights</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-xl space-y-3">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Asset Utilization Rates</span>
+                        <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden mt-2">
+                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: '74%' }}></div>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-bold text-indigo-300">
+                          <span>74% Allocated Pool</span>
+                          <span>26% Shelf Capacity</span>
+                        </div>
+                      </div>
 
+                      <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-xl space-y-3">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Resource Allocation Heatmaps</span>
+                        <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden mt-2">
+                          <div className="h-full bg-purple-500 rounded-full" style={{ width: '85%' }}></div>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-bold text-purple-300">
+                          <span>85% Peak Allocation Times</span>
+                          <span>15% Off-Peak Duration</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'logs' && (
+            <div className="space-y-6">
+              <div className="bg-slate-800/30 border border-slate-805 p-6 rounded-2xl">
+                <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mt-0 mb-4">Real-time System Logs</h3>
+                <div className="bg-slate-900/80 rounded-xl border border-slate-800 overflow-hidden shadow-2xl">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-850/80 border-b border-slate-800 text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                        <th className="p-3">Timestamp</th>
+                        <th className="p-3">Executing Operator</th>
+                        <th className="p-3">Target Asset</th>
+                        <th className="p-3">Event Action details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-850 text-slate-300 font-mono text-[11px]">
+                      {logs.map(log => (
+                        <tr key={log.id} className="hover:bg-slate-800/20">
+                          <td className="p-3 text-indigo-400 font-bold">{new Date(log.timestamp).toLocaleString()}</td>
+                          <td className="p-3 text-slate-200">@{log.username}</td>
+                          <td className="p-3 text-indigo-300">{log.targetTag}</td>
+                          <td className="p-3 text-slate-400">{log.action}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
