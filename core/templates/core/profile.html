@@ -8,7 +8,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
     <div class="lg:col-span-1 space-y-4">
-        <div class="bg-panel border border-slate-700/60 rounded-xl p-6 text-center">
+        <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-6 text-center">
             <div class="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-xl font-bold text-white mx-auto mb-4">
                 {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
             </div>
@@ -25,7 +25,7 @@
             </div>
         </div>
 
-        <div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden">
+        <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl overflow-hidden">
             <div class="px-5 py-3.5 border-b border-slate-700/60">
                 <p class="text-sm font-semibold text-white">Account Details</p>
             </div>
@@ -50,11 +50,39 @@
                 </div>
             </div>
         </div>
+
+        {% if request.user.role == 'ADMIN' or request.user.role == 'ASSET_MANAGER' %}
+        <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl overflow-hidden">
+            <div class="px-5 py-3.5 border-b border-slate-700/60">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wide">Admin Quick Links</p>
+            </div>
+            <div class="divide-y divide-slate-700/40">
+                <a href="{% url 'asset_directory' %}" class="flex items-center gap-3 px-5 py-3 hover:bg-slate-700/30 transition-colors">
+                    <svg class="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    <span class="text-xs font-semibold text-slate-300">Asset Directory</span>
+                </a>
+                <a href="{% url 'iot_dashboard' %}" class="flex items-center gap-3 px-5 py-3 hover:bg-slate-700/30 transition-colors">
+                    <svg class="w-3.5 h-3.5 text-teal-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                    </svg>
+                    <span class="text-xs font-semibold text-slate-300">IoT Monitoring</span>
+                </a>
+                <a href="{% url 'system_logs' %}" class="flex items-center gap-3 px-5 py-3 hover:bg-slate-700/30 transition-colors">
+                    <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    <span class="text-xs font-semibold text-slate-300">Audit Logs</span>
+                </a>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <div class="lg:col-span-2 space-y-5">
 
-        <div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden">
+        <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl overflow-hidden">
             <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-700/60">
                 <p class="text-sm font-semibold text-white">My Active Allocations</p>
                 <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">{{ allocations|length }}</span>
@@ -97,7 +125,7 @@
             {% endif %}
         </div>
 
-        <div class="bg-panel border border-slate-700/60 rounded-xl overflow-hidden">
+        <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl overflow-hidden">
             <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-700/60">
                 <p class="text-sm font-semibold text-white">My Active Bookings</p>
                 <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">{{ bookings|length }}</span>

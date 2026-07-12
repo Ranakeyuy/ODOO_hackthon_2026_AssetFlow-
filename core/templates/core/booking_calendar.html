@@ -4,6 +4,8 @@
 {% block page_title %}Resource Booking{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <style>
     .booking-card {
         background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.08));
@@ -17,7 +19,7 @@
         background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.08));
         border: 1px solid rgba(16,185,129,0.35);
     }
-    form select, form input[type="text"], form input[type="datetime-local"] {
+    form select {
         width: 100%;
         background-color: rgb(30, 41, 59);
         border: 1px solid rgb(51, 65, 85);
@@ -28,13 +30,67 @@
         outline: none;
         transition: border-color 0.15s ease-in-out;
     }
-    form select:focus, form input[type="text"]:focus, form input[type="datetime-local"]:focus {
-        border-color: rgb(79, 70, 229);
-    }
-    form select option {
-        background-color: rgb(15, 23, 42);
+    form select:focus { border-color: rgb(79, 70, 229); }
+    form select option { background-color: rgb(15, 23, 42); color: #ffffff; }
+
+    .dt-input-wrap { position: relative; }
+    .dt-input-wrap input {
+        width: 100%;
+        background-color: rgb(30, 41, 59);
+        border: 1px solid rgb(51, 65, 85);
+        border-radius: 0.5rem;
+        padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+        font-size: 0.75rem;
         color: #ffffff;
+        outline: none;
+        transition: border-color 0.15s ease-in-out;
+        cursor: pointer;
     }
+    .dt-input-wrap input:focus { border-color: rgb(79, 70, 229); }
+    .dt-input-wrap input::placeholder { color: #475569; }
+    .dt-cal-btn {
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748b;
+        cursor: pointer;
+        pointer-events: none;
+    }
+
+    .flatpickr-calendar {
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6) !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    .flatpickr-months { background: #1e293b !important; border-radius: 12px 12px 0 0 !important; }
+    .flatpickr-month { color: #e2e8f0 !important; fill: #e2e8f0 !important; }
+    .flatpickr-current-month { color: #e2e8f0 !important; font-size: 13px !important; font-weight: 700 !important; }
+    .flatpickr-current-month select { color: #e2e8f0 !important; background: transparent !important; }
+    .flatpickr-prev-month, .flatpickr-next-month { color: #94a3b8 !important; fill: #94a3b8 !important; }
+    .flatpickr-prev-month:hover, .flatpickr-next-month:hover { color: #6366f1 !important; fill: #6366f1 !important; }
+    .flatpickr-weekdays { background: #1e293b !important; }
+    span.flatpickr-weekday { color: #64748b !important; font-weight: 700 !important; font-size: 10px !important; }
+    .flatpickr-days { border-color: #334155 !important; }
+    .flatpickr-day { color: #cbd5e1 !important; border-radius: 8px !important; font-size: 12px !important; }
+    .flatpickr-day:hover { background: rgba(99,102,241,0.2) !important; border-color: transparent !important; color: #a5b4fc !important; }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+        background: #6366f1 !important;
+        border-color: #6366f1 !important;
+        color: #fff !important;
+    }
+    .flatpickr-day.today { border-color: #6366f1 !important; color: #818cf8 !important; font-weight: 700 !important; }
+    .flatpickr-day.flatpickr-disabled { color: #334155 !important; }
+    .flatpickr-time { background: #1e293b !important; border-top: 1px solid #334155 !important; border-radius: 0 0 12px 12px !important; }
+    .flatpickr-time input { color: #e2e8f0 !important; background: transparent !important; font-size: 13px !important; font-weight: 600 !important; }
+    .flatpickr-time .flatpickr-time-separator { color: #64748b !important; }
+    .flatpickr-time input:hover, .flatpickr-time input:focus { background: rgba(99,102,241,0.1) !important; }
+    .numInputWrapper:hover { background: rgba(99,102,241,0.08) !important; }
+    .numInputWrapper span { border-color: #334155 !important; }
+    .numInputWrapper span svg { fill: #64748b !important; }
+    .numInputWrapper span:hover svg { fill: #a5b4fc !important; }
 </style>
 {% endblock %}
 
@@ -199,7 +255,17 @@
                             Start Time
                             <span class="text-red-400 ml-0.5">*</span>
                         </label>
-                        {{ form.start_time }}
+                        <div class="dt-input-wrap">
+                            <input type="text" id="id_start_time_picker" name="start_time"
+                                   placeholder="Pick date & time"
+                                   value="{{ form.start_time.value|default:'' }}"
+                                   autocomplete="off">
+                            <span class="dt-cal-btn">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                            </span>
+                        </div>
                         {% if form.start_time.errors %}
                         <p class="text-xs text-red-400 mt-1">{{ form.start_time.errors.0 }}</p>
                         {% endif %}
@@ -209,7 +275,17 @@
                             End Time
                             <span class="text-red-400 ml-0.5">*</span>
                         </label>
-                        {{ form.end_time }}
+                        <div class="dt-input-wrap">
+                            <input type="text" id="id_end_time_picker" name="end_time"
+                                   placeholder="Pick date & time"
+                                   value="{{ form.end_time.value|default:'' }}"
+                                   autocomplete="off">
+                            <span class="dt-cal-btn">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                            </span>
+                        </div>
                         {% if form.end_time.errors %}
                         <p class="text-xs text-red-400 mt-1">{{ form.end_time.errors.0 }}</p>
                         {% endif %}
@@ -240,6 +316,29 @@
 
 {% block extra_scripts %}
 <script>
+    const fpConfig = {
+        enableTime: true,
+        dateFormat: 'Y-m-d H:i',
+        time_24hr: true,
+        minuteIncrement: 15,
+        minDate: 'today',
+        disableMobile: true,
+        theme: 'dark',
+    };
+
+    const startPicker = flatpickr('#id_start_time_picker', {
+        ...fpConfig,
+        onChange: function(selectedDates) {
+            if (selectedDates[0]) {
+                endPicker.set('minDate', selectedDates[0]);
+            }
+        }
+    });
+
+    const endPicker = flatpickr('#id_end_time_picker', {
+        ...fpConfig,
+    });
+
     {% if form.errors %}
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-new-booking').classList.remove('hidden');

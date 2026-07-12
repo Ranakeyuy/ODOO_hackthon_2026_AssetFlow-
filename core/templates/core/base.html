@@ -1,129 +1,279 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AssetFlow{% endblock %}</title>
+    <title>{% block title %}AssetFlow Enterprise{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        .status-badge {
-            @apply text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wide;
-        }
-        .status-available {
-            @apply bg-green-950 text-green-300 border border-green-900/30;
-        }
-        .status-allocated {
-            @apply bg-indigo-950 text-indigo-300 border border-indigo-900/30;
-        }
-        .status-reserved {
-            @apply bg-blue-950 text-blue-300 border border-blue-900/30;
-        }
-        .status-under-maintenance {
-            @apply bg-yellow-950 text-yellow-300 border border-yellow-900/30;
-        }
-        .status-lost {
-            @apply bg-red-950 text-red-300 border border-red-900/30;
-        }
-        .status-retired {
-            @apply bg-gray-950 text-gray-300 border border-gray-900/30;
-        }
-        .status-disposed {
-            @apply bg-purple-950 text-purple-300 border border-purple-900/30;
-        }
+        * { font-family: 'Inter', system-ui, sans-serif; }
+        body { background-color: #0f172a; color: #e2e8f0; }
+
+        .status-badge { font-size: 10px; font-weight: 800; padding: 2px 10px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .status-available    { background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+        .status-allocated    { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
+        .status-reserved     { background: rgba(14,165,233,0.12); color: #7dd3fc; border: 1px solid rgba(14,165,233,0.25); }
+        .status-under-maintenance { background: rgba(245,158,11,0.12); color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+        .status-lost         { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+        .status-retired      { background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.25); }
+        .status-disposed     { background: rgba(71,85,105,0.12); color: #64748b; border: 1px solid rgba(71,85,105,0.25); }
+
+        .status-badge-AVAILABLE    { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .status-badge-ALLOCATED    { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+        .status-badge-RESERVED     { background: rgba(14,165,233,0.15); color: #7dd3fc; border: 1px solid rgba(14,165,233,0.3); }
+        .status-badge-UNDER_MAINTENANCE { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+        .status-badge-LOST         { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .status-badge-RETIRED      { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+        .status-badge-DISPOSED     { background: rgba(71,85,105,0.15); color: #64748b; border: 1px solid rgba(71,85,105,0.3); }
+
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; color: #94a3b8; transition: background 0.15s, color 0.15s; }
+        .nav-link:hover { background: rgba(99,102,241,0.1); color: #c7d2fe; }
+        .nav-link.active { background: rgba(99,102,241,0.18); color: #818cf8; border-left: 3px solid #6366f1; padding-left: 9px; }
+        .nav-section { font-size: 9px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #475569; padding: 16px 12px 6px; }
+
+        .notif-panel { display: none; }
+        .notif-panel.open { display: block; }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
     </style>
-    {% block extra_head %}
-    {% endblock %}
+    {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
-    <header class="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 flex items-center justify-between px-6">
-        <div class="flex items-center gap-3">
-            <span class="font-extrabold text-lg tracking-wider text-indigo-400">ASSETFLOW</span>
-            <span class="text-xs bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-400 font-semibold uppercase">Enterprise ERP</span>
-        </div>
-        <div class="flex items-center gap-6">
-            {% if request.user.is_authenticated %}
-            <div class="flex items-center gap-3 border-l border-slate-800 pl-6">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-extrabold text-xs text-white">
-                    {% if request.user.first_name and request.user.last_name %}
-                    {{ request.user.first_name|first }}{{ request.user.last_name|first }}
-                    {% else %}
-                    {{ request.user.username|first }}
-                    {% endif %}
-                </div>
-                <div>
-                    <p class="text-xs font-bold text-slate-200">{{ request.user.get_full_name|default:request.user.username }}</p>
-                    <p class="text-[10px] text-indigo-400 font-extrabold uppercase tracking-wide">{{ request.user.get_role_display }}</p>
-                </div>
-                <form action="{% url 'logout' %}" method="post" class="inline ml-2">
-                    {% csrf_token %}
-                    <button type="submit" class="text-xs hover:text-red-400 text-slate-400 font-semibold">
-                        Logout
-                    </button>
-                </form>
+<body class="h-full antialiased">
+
+<div class="flex h-screen overflow-hidden">
+
+    <aside class="w-60 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto">
+        <div class="flex items-center gap-2.5 px-4 py-4 border-b border-slate-800">
+            <div class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
+                <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+                </svg>
             </div>
-            {% else %}
-            <a href="{% url 'login' %}" class="text-xs hover:text-indigo-400 ml-2 text-slate-400 font-semibold">Login</a>
-            <a href="{% url 'register' %}" class="text-xs hover:text-indigo-400 ml-2 text-slate-400 font-semibold">Register</a>
-            {% endif %}
+            <div>
+                <p class="text-sm font-black text-white tracking-tight leading-none">ASSETFLOW</p>
+                <p class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mt-0.5">Enterprise ERP</p>
+            </div>
         </div>
-    </header>
-    <div class="flex-1 flex overflow-hidden">
+
         {% if request.user.is_authenticated %}
-        <aside class="w-64 border-r border-slate-800 bg-slate-900/60 p-4 flex flex-col gap-1.5 shrink-0">
-            <p class="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase px-3 mb-2">Main Navigation</p>
-            {% url 'dashboard' as dashboard_url %}
-            {% url 'asset_directory' as directory_url %}
-            {% url 'booking_calendar' as booking_url %}
-            {% with request.resolver_match.view_name as current_view_name %}
-            <a href="{{ dashboard_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'dashboard' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        <nav class="flex-1 px-2 py-3">
+            {% url 'dashboard' as url_dashboard %}
+            {% url 'asset_directory' as url_assets %}
+            {% url 'booking_calendar' as url_bookings %}
+            {% url 'iot_dashboard' as url_iot %}
+            {% url 'system_logs' as url_logs %}
+            {% url 'profile' as url_profile %}
+            {% with request.resolver_match.view_name as vn %}
+
+            <p class="nav-section">Core</p>
+            <a href="{{ url_dashboard }}" class="nav-link {% if vn == 'dashboard' %}active{% endif %}">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                 </svg>
-                <span>Dashboard</span>
+                Dashboard
             </a>
-            <a href="{{ directory_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'asset_directory' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+
+            <p class="nav-section">Assets</p>
+            <a href="{{ url_assets }}" class="nav-link {% if vn == 'asset_directory' %}active{% endif %}">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                 </svg>
-                <span>Asset Directory</span>
+                Asset Directory
             </a>
-            <a href="{{ directory_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all text-slate-400 hover:bg-slate-800/50 hover:text-slate-200">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            <a href="{{ url_assets }}" class="nav-link">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                 </svg>
-                <span>Allocate Asset</span>
+                Allocate Asset
             </a>
-            <a href="{{ booking_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'booking_calendar' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+
+            <p class="nav-section">Operations</p>
+            <a href="{{ url_bookings }}" class="nav-link {% if vn == 'booking_calendar' %}active{% endif %}">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
-                <span>New Booking</span>
+                Resource Booking
             </a>
-            {% url 'iot_dashboard' as iot_dashboard_url %}
-            {% url 'system_logs' as system_logs_url %}
-            <a href="{{ iot_dashboard_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'iot_dashboard' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            <a href="#" class="nav-link">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
-                <span>IoT Devices</span>
+                Maintenance
+            </a>
+
+            <p class="nav-section">Intelligence</p>
+            <a href="{{ url_iot }}" class="nav-link {% if vn == 'iot_dashboard' %}active{% endif %}">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                </svg>
+                IoT Monitoring
+                {% if active_alerts_count %}
+                <span class="ml-auto text-[9px] font-black bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full">{{ active_alerts_count }}</span>
+                {% endif %}
             </a>
             {% if request.user.role == 'ADMIN' or request.user.role == 'ASSET_MANAGER' %}
-            <a href="{{ system_logs_url }}" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all {% if current_view_name == 'system_logs' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/10{% else %}text-slate-400 hover:bg-slate-800/50 hover:text-slate-200{% endif %}">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            <a href="{{ url_logs }}" class="nav-link {% if vn == 'system_logs' %}active{% endif %}">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                 </svg>
-                <span>Audit Logs</span>
+                Audit Logs
             </a>
             {% endif %}
+
+            {% if request.user.role == 'ADMIN' %}
+            {% url 'user_management' as url_user_mgmt %}
+            <a href="{{ url_user_mgmt }}" class="nav-link {% if vn == 'user_management' %}active{% endif %}">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                User Management
+            </a>
+            {% endif %}
+
             {% endwith %}
-        </aside>
+
+        </nav>
+
+        <div class="px-2 py-3 border-t border-slate-800 space-y-0.5">
+            <a href="{% url 'profile' %}" class="nav-link {% if request.resolver_match.view_name == 'profile' %}active{% endif %}">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                My Profile
+            </a>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="nav-link w-full text-left hover:text-red-400">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                    Sign Out
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div class="flex-1 px-2 py-3 space-y-1">
+            <a href="{% url 'login' %}" class="nav-link">Login</a>
+            <a href="{% url 'register' %}" class="nav-link">Register</a>
+        </div>
         {% endif %}
-        <main class="flex-1 overflow-y-auto p-8">
-            {% block content %}
-            {% endblock %}
+    </aside>
+
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        <header class="flex-shrink-0 h-13 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 py-3">
+            <div class="flex items-center gap-3">
+                <h1 class="text-sm font-extrabold text-white tracking-tight">{% block page_title %}AssetFlow{% endblock %}</h1>
+                {% block breadcrumb %}{% endblock %}
+            </div>
+
+            {% if request.user.is_authenticated %}
+            <div class="flex items-center gap-4">
+
+                <div class="relative" id="notif-wrap">
+                    <button onclick="toggleNotif()" class="relative p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                        <svg class="w-4.5 h-4.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        {% if overdue_returns %}
+                        <span class="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                        {% endif %}
+                    </button>
+
+                    <div id="notif-panel" class="notif-panel absolute right-0 top-full mt-2 w-80 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+                            <p class="text-xs font-bold text-white">Notifications</p>
+                            {% if overdue_returns %}
+                            <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-extrabold">{{ overdue_returns|length }} overdue</span>
+                            {% endif %}
+                        </div>
+                        <div class="max-h-64 overflow-y-auto divide-y divide-slate-700/50">
+                            {% if overdue_returns %}
+                                {% for o in overdue_returns %}
+                                <div class="px-4 py-3 hover:bg-slate-700/30 transition-colors">
+                                    <div class="flex items-start gap-2.5">
+                                        <div class="w-6 h-6 rounded-full bg-red-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <svg class="w-3 h-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-xs font-bold text-white truncate">{{ o.asset.name }}</p>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">{{ o.user.get_full_name|default:o.user.username }} &mdash; due {{ o.expected_return_date }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="px-4 py-8 text-center">
+                                    <p class="text-xs text-slate-500">No new notifications</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5 pl-4 border-l border-slate-800">
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-[10px] font-black text-white flex-shrink-0">
+                        {% if request.user.first_name and request.user.last_name %}
+                        {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+                        {% else %}
+                        {{ request.user.username|first|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="hidden sm:block">
+                        <p class="text-xs font-bold text-slate-200 leading-tight">{{ request.user.get_full_name|default:request.user.username }}</p>
+                        <p class="text-[10px] font-extrabold uppercase tracking-wide
+                            {% if request.user.role == 'ADMIN' %}text-red-400
+                            {% elif request.user.role == 'ASSET_MANAGER' %}text-amber-400
+                            {% elif request.user.role == 'DEPARTMENT_HEAD' %}text-sky-400
+                            {% else %}text-indigo-400{% endif %}">
+                            {{ request.user.get_role_display }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </header>
+
+        <main class="flex-1 overflow-y-auto bg-slate-900/50">
+            {% if messages %}
+            <div class="px-8 pt-5 space-y-2">
+                {% for message in messages %}
+                <div class="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold
+                    {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/25 text-red-400
+                    {% elif message.tags == 'success' %}bg-emerald-500/10 border border-emerald-500/25 text-emerald-400
+                    {% elif message.tags == 'warning' %}bg-amber-500/10 border border-amber-500/25 text-amber-400
+                    {% else %}bg-indigo-500/10 border border-indigo-500/25 text-indigo-400{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="p-8">
+                {% block content %}{% endblock %}
+            </div>
         </main>
     </div>
-    {% block extra_scripts %}
-    {% endblock %}
+</div>
+
+<script>
+    function toggleNotif() {
+        document.getElementById('notif-panel').classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+        const wrap = document.getElementById('notif-wrap');
+        if (wrap && !wrap.contains(e.target)) {
+            document.getElementById('notif-panel').classList.remove('open');
+        }
+    });
+</script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

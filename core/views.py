@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
+from django.db.models import Count, Q
 from core.models import (
     User, Asset, AssetAllocation, ResourceBooking,
     TransferRequest, MaintenanceRequest, AssetCategory,
@@ -229,6 +230,7 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
         context['bookings'] = ResourceBooking.objects.filter(
             user=self.request.user, is_cancelled=False, end_time__gt=timezone.now()
         ).select_related('resource')
+        context['today'] = timezone.now().date()
         return context
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -324,3 +326,91 @@ class SystemLogListView(LoginRequiredMixin, View):
             'q': q,
         }
         return render(request, self.template_name, context)
+
+
+class UserManagementView(LoginRequiredMixin, View):
+    template_name = 'core/user_management.html'
+
+    ROLE_ORDER = [User.EMPLOYEE, User.DEPARTMENT_HEAD, User.ASSET_MANAGER, User.ADMIN]
+    ROLE_LABELS = {
+        User.EMPLOYEE: 'Employee',
+        User.DEPARTMENT_HEAD: 'Department Head',
+        User.ASSET_MANAGER: 'Asset Manager',
+        User.ADMIN: 'Admin',
+    }
+
+    def _require_admin(self, request):
+        return request.user.role == User.ADMIN
+
+    def _build_user_list(self, q=None):
+        users = User.objects.all().order_by('date_joined')
+        if q:
+            users = users.filter(
+                Q(username__icontains=q) |
+                Q(first_name__icontains=q) |
+                Q(last_name__icontains=q) |
+                Q(email__icontains=q)
+            )
+
+        result = []
+        for u in users:
+            allocations = AssetAllocation.objects.filter(user=u).select_related('asset__category')
+            total_used = allocations.count()
+            active = allocations.filter(actual_return_date__isnull=True).count()
+            category_counts = {}
+            for alloc in allocations:
+                cat = alloc.asset.category.name
+                category_counts[cat] = category_counts.get(cat, 0) + 1
+            result.append({
+                'user': u,
+                'total_used': total_used,
+                'active_allocations': active,
+                'category_breakdown': category_counts,
+            })
+        return result
+
+    def get(self, request):
+        if not self._require_admin(request):
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden('Admin access required.')
+        q = request.GET.get('q', '')
+        context = {
+            'user_list': self._build_user_list(q),
+            'q': q,
+            'roles': self.ROLE_LABELS,
+            'User': User,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        if not self._require_admin(request):
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden('Admin access required.')
+
+        action = request.POST.get('action')
+        target_id = request.POST.get('user_id')
+        target = get_object_or_404(User, pk=target_id)
+
+        if target == request.user:
+            from django.contrib import messages
+            messages.error(request, 'You cannot modify your own account.')
+            return redirect('user_management')
+
+        if action == 'promote':
+            current_idx = self.ROLE_ORDER.index(target.role) if target.role in self.ROLE_ORDER else 0
+            if current_idx < len(self.ROLE_ORDER) - 1:
+                target.role = self.ROLE_ORDER[current_idx + 1]
+                target.save()
+        elif action == 'demote':
+            current_idx = self.ROLE_ORDER.index(target.role) if target.role in self.ROLE_ORDER else 0
+            if current_idx > 0:
+                target.role = self.ROLE_ORDER[current_idx - 1]
+                target.save()
+        elif action == 'restrict':
+            target.is_active = False
+            target.save()
+        elif action == 'unrestrict':
+            target.is_active = True
+            target.save()
+
+        return redirect('user_management')

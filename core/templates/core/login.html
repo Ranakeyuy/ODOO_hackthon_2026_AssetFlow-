@@ -61,7 +61,11 @@
                 Login to Account
             </button>
         </form>
-        <div class="mt-8 border-t border-slate-700/60 pt-6">
+        <p class="text-center text-xs text-slate-500 mt-5">
+            Don't have an account?
+            <a href="{% url 'register' %}" class="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">Register here</a>
+        </p>
+        <div class="mt-6 border-t border-slate-700/60 pt-6">
             <p class="text-[10px] font-extrabold uppercase text-slate-500 mb-3 tracking-widest text-center">Demo Accounts (Click to Fill)</p>
             <div class="grid grid-cols-1 gap-2">
                 <button type="button" onclick="fillCredentials('admin', 'password123')" class="flex items-center justify-between p-2.5 bg-slate-800/40 hover:bg-slate-700/40 border border-slate-700/60 rounded-xl transition-all text-left">
